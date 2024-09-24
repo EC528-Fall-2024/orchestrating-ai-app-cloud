@@ -133,3 +133,6 @@ Release 5 (User Interface and Optimization):
 - Conduct comprehensive testing and performance tuning
 
 ** **
+
+Previous team worked with supervisor:
+https://github.com/BU-CLOUD-F20/Securing_MS_Integrity
