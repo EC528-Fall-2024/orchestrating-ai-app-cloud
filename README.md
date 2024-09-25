@@ -138,10 +138,10 @@ Release 5 (User Interface and Optimization):
 ## 7.  Sprint Presentations:
 
 Sprint Demos:
-- Sprint 1 Demo: https://drive.google.com/file/d/1Fqh7comXd_vDLWdvxGC17qeZmg13L2oX/view?usp=sharing
+- [Sprint 1 Demo](https://drive.google.com/file/d/1Fqh7comXd_vDLWdvxGC17qeZmg13L2oX/view?usp=sharing)
 
 Spring Slides:
-- Sprint 1 Slides: https://docs.google.com/presentation/d/1z4AoG5UfYQ2fszpIUro6hpWGW8rE3Tl7FR-4X7SHE4k/edit?usp=sharing
+- [Sprint 1 Slides](https://docs.google.com/presentation/d/1z4AoG5UfYQ2fszpIUro6hpWGW8rE3Tl7FR-4X7SHE4k/edit?usp=sharing)
 
 
 ** **
