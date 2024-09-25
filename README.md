@@ -42,6 +42,8 @@ The AI Deployment Platform provides:
 
 ## 4. Solution Concept
 
+![User](https://github.com/user-attachments/assets/f8f9d610-5022-4f57-9a3d-359243f91373)
+
 - Cloud Infrastructure:
   - Primary compute platform: Intel Developer Cloud (IDC)
   - Support for hybrid and multi-cloud deployments to leverage best-of-breed services
