@@ -1,38 +1,49 @@
 ** **
-## Sprint Presentations:
-
-Sprint Demos:
-- [Sprint 1 Demo](https://drive.google.com/file/d/1Y6o8N7rpiolrclTE44CY9-EwQOUWCRaX/view?usp=sharing)
-
-Spring Slides:
-- [Sprint 1 Slides](https://docs.google.com/presentation/d/1z4AoG5UfYQ2fszpIUro6hpWGW8rE3Tl7FR-4X7SHE4k/edit?usp=sharing)
+# Orchestrating AI Applications Deployments on the Cloud
 
 ** **
-## Orchestrating AI Applications Deployments on the Cloud
+## Team
+
+| Name         | Github Handle | Email           |
+| :----------- | ------------- | --------------- |
+| Ryan Darrow  | darrowball13  | darrowry@bu.edu |
+| Peter Gu     | peterguzw0927 | petergu@bu.edu  |
+| Harlan Jones | harlanljones  | hljones@bu.edu  |
+| Kris Patel   | Kris7180      | krispat@bu.edu  |
+| Jimmy Sui    | gimmymansui   | suijs@bu.edu    |
+| Thai Nguyen  | ThaiNguyen03  | quocthai@bu.edu |
+
+Mentorship provided by Shripad Nadgowda at Intel
+
+** **
+## Sprint Presentations:
+
+Sprint Demo Videos:
+- [Sprint 1 Demo](https://drive.google.com/file/d/1Y6o8N7rpiolrclTE44CY9-EwQOUWCRaX/view?usp=sharing)
+
+Sprint Slides:
+- [Sprint 1 Slides](https://docs.google.com/presentation/d/1z4AoG5UfYQ2fszpIUro6hpWGW8rE3Tl7FR-4X7SHE4k/edit?usp=sharing)
 
 ** **
 
 ## 1.   Vision and Goals Of The Project:
 
-In recent years, the use of AI Applications for both interfering and training are becoming common workloads on the cloud platform. Many of the workloads follow a small number of typical deployment patterns; However, it is hard for developers to bootstrap and onboard their applications on cloud. There are few open-source initiatives that aim to handle certain aspects of this process, whether it be providing workflow automation, downloading dependencies, etc., but there is a gap in the market for a platform that handles the process from end-to-end. The Intel platform for AI deployment will be the infrastructure that AI/ML end-user developers that will handle this process, as part of the Intel Cloud. 
+In recent years, the use of AI Applications have become common workloads on the cloud platform. Many of the workloads follow a small number of typical deployment patterns; However, it is hard for developers to bootstrap and onboard their applications on cloud without prior experience or knowledge. There are a few open-source initiatives that aim to handle certain aspects of this process, whether it be providing workflow automation, downloading dependencies, etc., but there is a gap in the market for a platform that handles the process from end-to-end. We look to provide the infrastructure that end-user developers need to successfully deploy and monitor AI applications through a simple command-line interface. 
 
 Key goals of the project include:
 
-- Bridging the gap between applications such as Terraform/Ansible and full deployment
-- Providing a hassle-free application that will allow developers to train models without knowing the intricacies of the cloud
-- Offer a unified cloud environment that integrates all aspects of an AI/ML engineering project
-- Streamline the process of resource allocation, dependency management, and model deployment
+- Streamlining the process of resource allocation, dependency management, and model deployment
+- Integrating public and private sources of data, models, and dependencies into the cloud platform
+- Leveraging Terraform and Ansible to autonomously deploy cloud instances
+- Providing a reliable and intuitive command-line interface to programmatically interact with the product
 
 
 ## 2. Users/Personas Of The Project:
 
-The AI deployment platform will be used primarily by ML engineers and companies who do not have the resources to buy a large set of GPUs to train their models. User stories include:
+The AI deployment platform will be used by developers who look to host AI applications on the cloud without the requirement of hardware or extensive prior knowledge. User stories may include:
 
-- AI/ML engineers that possess the knowledge of optimization and models but without the GPUs to train their model(s).
-- People unfamiliar with cloud processes who simply want to rent a platform to train their model without worrying about the underlying infrastructure and require a simple interface to manage cloud resources.
-- People that want the capability of grabbing resources from a variety of different places (Ex. a particular PyTorch package, a dataset from another target, and a model from HuggingFace or some other website), and having someone else to figure out how to put everything together.
-- People who have models with certain dependencies and want to have all the packages installed on the cloud without worrying about it.
-
+- Engineers who look to leverage hardware-dependent AI models will be automatically provided with an infrastructure with properly allocated hardware and resources such as memory, storage and computing.
+- People unfamiliar with cloud computing who look to explore AI capability will be able to deploy AI models on the cloud without needing to specify techincal requirements. Data sourcing, dependency installation and model training will be accomplished autonomously on the cloud.
 
 ** **
 
@@ -40,11 +51,10 @@ The AI deployment platform will be used primarily by ML engineers and companies 
 
 The AI Deployment Platform provides:
 
-- Support for pulling target models from HuggingFace, datasets from Kaggle and libraries like PyTorch
+- Support for sourcing models, datasets, and libraries from public and private sources
+- Automatic cloud instance generation with proper hardware and resource allocation
 - End-to-end training of AI models with automatic package installation and support
 - Security of proprietary data such as data and models on cloud infrastructure
-- An all-in-one frontend application for consumers to interact with their models in a user-friendly way
-
 
 ** **
 
@@ -77,6 +87,8 @@ The AI Deployment Platform provides:
   - React-based web application for the front-end
   - RESTful API backend for programmatic access
 
+** **
+
 ## 5. Acceptance criteria
 
 Minimum acceptance criteria is
@@ -108,9 +120,7 @@ Minimum acceptance criteria is
   - Secure user authentication and authorization
   - Data encryption for storage and transmission
 
-Stretch goals are:
-
-
+** **
 
 ## 6.  Release Planning:
 
@@ -143,7 +153,6 @@ Release 5 (User Interface and Optimization):
 - Conduct comprehensive testing and performance tuning
 
 ** **
-
 
 Previous team worked with supervisor:
 https://github.com/BU-CLOUD-F20/Securing_MS_Integrity
