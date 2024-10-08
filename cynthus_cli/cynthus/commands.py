@@ -203,6 +203,6 @@ def cli_entry_point():
     elif args.command == 'ssh':
         project_ssh(args.ssh_key, args.service)
     elif args.command == 'datapull':
-        project_ssh(args.url, args.target)
+        project_datapull(args.url, args.target)
     else:
         parser.print_help()
