@@ -31,6 +31,12 @@ def handle_print():
 def give_info():
     print('The VM package info can be found below: ')
 
+# Initializes the project with the following directory strcuture
+# project |
+#         - src
+#         - data
+#         - config
+
 
 def init_project(project_name):
     current_path = Path.cwd()
@@ -85,6 +91,8 @@ def containerize_project(project_path):
 # UNIMPLEMENTED
 # Pushes the specified image to the specified container registry
 # currently deadlocked by our inability to access Intel API and SSH implementation
+
+
 def project_push(image_path, registry):
     pass
     # docker_registry = "REGISTRY_HERE"
@@ -93,6 +101,23 @@ def project_push(image_path, registry):
 
     # except subprocess.CalledProcessError as error:
     #     print(f"Error: {error}")
+
+# UNIMPLEMENTED
+# SSH the user into a specified cloud service using their public SSH key, supported
+# platforms include: ()
+
+
+def project_ssh(ssh_key, service):
+    pass
+
+
+# UNIMPLEMENTED
+# Pulls data from a public data store and into a specified target cloud container
+# Unsure of whether implementation would require pulling onto dev machine first
+
+
+def project_datapull(url, target):
+    pass
 
 
 def cli_entry_point():
@@ -129,6 +154,28 @@ def cli_entry_point():
         help='The name of the registry'
     )
 
+    parser_ssh = subparsers.add_parser(
+        'ssh', help='SSH into a specified cloud registry')
+    parser_ssh.add_argument(
+        'ssh_key',
+        help='The public key of the user'
+    )
+    parser_ssh.add_argument(
+        'service',
+        help='The cloud service to SSH into'
+    )
+
+    parser_datapull = subparsers.add_parser(
+        'datapull', help='Pull data from a target supported url into a VM')
+    parser_ssh.add_argument(
+        'url',
+        help='The url to be pulled from, supports HuggingFace and Kaggle'
+    )
+    parser_ssh.add_argument(
+        'target',
+        help='The target to send the data'
+    )
+
     args = parser.parse_args()
 
     if args.command == 'ping':
@@ -143,5 +190,7 @@ def cli_entry_point():
         containerize_project(args.project_path)
     elif args.command == 'push':
         project_push(args.image_path, args.registry)
+    elif args.command == 'ssh':
+        project_ssh(args.ssh_key, args.service)
     else:
         parser.print_help()
