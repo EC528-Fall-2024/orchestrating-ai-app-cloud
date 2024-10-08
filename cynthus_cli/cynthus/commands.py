@@ -24,6 +24,55 @@ def ping_intel():
         print('Error:', e)
         return None
 
+def setup_kaggle():
+    """
+    Provides instructions to the user on how to generate and set up the Kaggle API key.
+    """
+    print("To set up your Kaggle API key, follow these steps:")
+    print("0.5 If you already have an Kaggle API key, use setup_kaggle_api")
+    print("1. Go to your Kaggle account settings page: https://www.kaggle.com/account")
+    print("2. Scroll down to the 'API' section.")
+    print("3. Click on 'Create New API Token'. This will download a file named 'kaggle.json'.")
+    print("4. Move this file to the directory ~/.kaggle/. If the directory does not exist, create it.")
+    print("   You can use the following command:")
+    print("   mkdir -p ~/.kaggle && mv /path/to/your/downloaded/kaggle.json ~/.kaggle/")
+    print("5. Set the permissions of the kaggle.json file to read and write only for the user:")
+    print("   chmod 600 ~/.kaggle/kaggle.json")
+    print("You are now set up to use the Kaggle API!")
+
+def download_kaggle_dataset(dataset, dest_path):
+    """
+    Download Kaggle dataset and print metadata like size.
+    Args:
+        dataset (str): The Kaggle dataset to download (e.g., 'username/dataset-name')
+        dest_path (str): The local directory where the dataset will be downloaded
+    """
+    # Ensure the destination path exists
+    os.makedirs(dest_path, exist_ok=True)
+
+    try:
+        # Check if Kaggle API key is set
+        if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
+            print("Kaggle API key is not set. Please set it up.")
+            return
+        
+        # Download dataset
+        kaggle.api.dataset_download_files(dataset, path=dest_path, unzip=True)
+
+        # Calculate dataset size
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(dest_path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+
+        total_size_mb = total_size / (1024 * 1024)
+        print(f"Dataset '{dataset}' downloaded to '{dest_path}'")
+        print(f"Total size: {total_size_mb:.2f} MB")
+
+    except Exception as e:
+        print(f"Error downloading dataset: {e}")
+
 
 def handle_print():
     print('For more info, type -h or --help.')
@@ -204,5 +253,9 @@ def cli_entry_point():
         project_ssh(args.ssh_key, args.service)
     elif args.command == 'datapull':
         project_datapull(args.url, args.target)
+    elif args.command == 'setup_kaggle':
+        setup_kaggle()
+    elif args.command == 'download-kaggle':
+        download_kaggle_dataset(args.dataset, args.dest_path)
     else:
         parser.print_help()
