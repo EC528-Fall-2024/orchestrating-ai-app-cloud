@@ -21,9 +21,12 @@ def ping_intel():
         return None
 
 
-def handle_print():
-    print('For more info, type -h or --help.')
+def model_upload():
+    print('Provide the link to the model you wish to upload: ')
 
+def startVM():
+    print('\nCaution: confirm that all inputs (model, data, etc.) have been provided before proceeding \n')
+    print('Continue? (Y/N): ')
 def give_info():
     print('The VM package info can be found below: ')
 
@@ -33,7 +36,9 @@ def cli_entry_point():
 
     parser_request = subparsers.add_parser('ping', help='ping Intel site')
     
-    parser_print = subparsers.add_parser('print', help='print help message')
+    parser_model_up = subparsers.add_parser('upload', help='upload model')
+
+    parser_startVM = subparsers.add_parser('startVM', help='Start the VM instance')
 
     parser_info = subparsers.add_parser('info', help='Get VM package info')
 
@@ -41,8 +46,10 @@ def cli_entry_point():
 
     if args.command == 'ping':
         ping_intel()
-    elif args.command == 'print':
-        handle_print()
+    elif args.command == 'upload':
+        model_upload()
+    elif args.command == 'startVM':
+        startVM()
     elif args.command == 'info':
         give_info()
     else:
