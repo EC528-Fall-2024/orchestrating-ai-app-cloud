@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 import requests
 import subprocess
+from datasets import load_dataset_builder
 
 
 def ping_intel():
@@ -9,7 +10,7 @@ def ping_intel():
     try:
         # Make a GET request to the API endpoint using requests.get()
         r = requests.get(
-            'https://compute-us-region-1-api.cloud.intel.com/openapiv2/#/v1/ping')
+            'https://compute-us-region-2-api.cloud.intel.com/openapiv2/#/v1/ping')
 
         # Check if the request was successful (status code 200)
         if r.status_code == 200:
@@ -113,11 +114,20 @@ def project_ssh(ssh_key, service):
 
 # UNIMPLEMENTED
 # Pulls data from a public data store and into a specified target cloud container
-# Unsure of whether implementation would require pulling onto dev machine first
+# For now, returns dataset size to test API calls
 
 
 def project_datapull(url, target):
-    pass
+    if "huggingface.co" in url:
+        hf_key = url.split("datasets/", 1)
+        builder = load_dataset_builder(hf_key)
+        print("Found dataset of size " + builder.info.download_size)
+        '''
+        import s3fs
+        storage_options = {}
+        fs = s3fs.S3FileSystem(**storage_options)
+        builder.download_and_prepare(output_dir, storage_options=storage_options, file_format="parquet")
+        '''
 
 
 def cli_entry_point():
@@ -167,11 +177,11 @@ def cli_entry_point():
 
     parser_datapull = subparsers.add_parser(
         'datapull', help='Pull data from a target supported url into a VM')
-    parser_ssh.add_argument(
+    parser_datapull.add_argument(
         'url',
         help='The url to be pulled from, supports HuggingFace and Kaggle'
     )
-    parser_ssh.add_argument(
+    parser_datapull.add_argument(
         'target',
         help='The target to send the data'
     )
@@ -192,5 +202,7 @@ def cli_entry_point():
         project_push(args.image_path, args.registry)
     elif args.command == 'ssh':
         project_ssh(args.ssh_key, args.service)
+    elif args.command == 'datapull':
+        project_ssh(args.url, args.target)
     else:
         parser.print_help()
