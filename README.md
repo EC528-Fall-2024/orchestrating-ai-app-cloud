@@ -139,6 +139,7 @@ Release 2 (Core Infrastructure):
 - Use Terraform to provision resources
 - Begin managing AI workloads on IDC
 - Configure cloud resources with Ansible playbooks (Setup libraries such as PyTorch, TensorFlow etc.)
+- Automatic generation of cloud-init script for custom VM initialization
 - Develop initial CLI for platform interactions
 
 Release 3 (External Integrations):
