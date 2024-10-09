@@ -50,6 +50,6 @@ runcmd:
         config_file.write(yaml_content)
 
 # Usage
-requirements_path = 'requirements.txt'
+requirements_path = 'requirements.txt' # change this to the path of the requirements.txt file
 output_path = 'cloud-init-config.yaml'
 generate_cloud_init_yaml(requirements_path, output_path)
