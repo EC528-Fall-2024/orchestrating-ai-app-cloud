@@ -71,10 +71,12 @@ The AI Deployment Platform provides:
 
 - Infrastructure:
   - Terraform for provisioning and managing cloud resources
-  - Ansible for configuration management and application deployment
+  - Cloud-init for initial VM setup and universal package installation
+  - Ansible for ongoing configuration management and application deployment
 
 - AI/ML Frameworks:
   - Native support for popular frameworks like PyTorch and TensorFlow
+  - Automatic environment dependency configuration for custom code files
 
 - Model and Data Management:
   - Integration with HuggingFace for access to pre-trained models and datasets
