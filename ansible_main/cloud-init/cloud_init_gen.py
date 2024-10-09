@@ -39,8 +39,12 @@ write_files:
 
 runcmd:
   - pip3 install -r /requirements.txt
-"""
+  - echo "cloud-init config complete" >> /var/log/cloud-init-output.log
+  - systemctl restart sshd
+  - ufw allow OpenSSH
+  - ufw --force enable
 
+"""
     # Write the cloud-init YAML file
     with open(output_path, 'w') as config_file:
         config_file.write(yaml_content)
