@@ -3,7 +3,7 @@ users:
   - name: user
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFNeLRIWWuEqoZ8mHZb8Q6xSqTzb2aFymxuzXBN12Jzn suij2@DESTRUCTION-SUI # CHANGE THIS SSH KEY
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbUbFFMOV4SKX3B5Jo/1tWXa6kNhRdLoGpQtTB7/uuG suijs@bu.edu
 
 ssh_pwauth: false
 
@@ -24,47 +24,6 @@ packages:
   - vim
 
 
-write_files:
-  - path: /requirements.txt
-    content: |
-# Deep Learning Frameworks
-      tensorflow==2.13.0
-      torch==2.0.1
-      torchvision==0.15.2
-      
-      # Scientific Computing
-      numpy==1.24.3
-      scipy==1.10.1
-      pandas==2.0.3
-      
-      # Machine Learning
-      scikit-learn==1.3.0
-      
-      # Data Visualization
-      matplotlib==3.7.2
-      seaborn==0.12.2
-      
-      # Image Processing
-      Pillow==10.0.0
-      opencv-python==4.8.0.74
-      
-      # Natural Language Processing
-      nltk==3.8.1
-      transformers==4.30.2
-      
-      # Jupyter Notebook
-      jupyter==1.0.0
-      
-      # Utilities
-      tqdm==4.65.0
-      
-      # GPU Support (uncomment if using CUDA-enabled GPU)
-      # cupy-cuda11x==11.0.0
-
 runcmd:
-  - pip3 install -r /requirements.txt
-  - echo "cloud-init config complete" >> /var/log/cloud-init-output.log
-  - systemctl restart sshd
-  - ufw allow OpenSSH
-  - ufw --force enable
+  - sudo pip3 install tensorflow==2.13.0 torch==2.0.1 torchvision==0.15.2 numpy==1.24.3 scipy==1.10.1 pandas==2.0.3 scikit-learn==1.3.0 matplotlib==3.7.2 seaborn==0.12.2 Pillow==10.0.0 opencv-python==4.8.0.74 nltk==3.8.1 transformers==4.30.2 jupyter==1.0.0 tqdm==4.65.0
 

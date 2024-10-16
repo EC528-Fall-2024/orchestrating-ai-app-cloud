@@ -1,10 +1,9 @@
 #cloud-config
 users:
-  - name: ansible
+  - name: cynthus
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFNeLRIWWuEqoZ8mHZb8Q6xSqTzb2aFymxuzXBN12Jzn suij2@DESTRUCTION-SUI # CHANGE THIS SSH KEY
-
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbUbFFMOV4SKX3B5Jo/1tWXa6kNhRdLoGpQtTB7/uuG suijs@bu.edu
 
 ssh_pwauth: false
 
@@ -18,3 +17,6 @@ packages:
   - curl
   - wget
   - vim
+
+runcmd:
+  - sudo pip3 install pandas numpy
