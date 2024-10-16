@@ -4,14 +4,27 @@ variable "zone" {
   default     = "us-east4-a"
 }
 
+variable "ssh_public_key" {
+  description = "The Ed25519 public SSH key to add to the instance"
+  type        = string
+  default     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbUbFFMOV4SKX3B5Jo/1tWXa6kNhRdLoGpQtTB7/uuG suijs@bu.edu"
+}
+
 provider "google" {
   project = "cynthusgcp-438617"
   region  = "us-east4"
   zone    = var.zone
 }
 
+data "template_file" "cloud_init" {
+  template = file("${path.module}/../ansible_main/cloud-init/control_cloudinit.yaml")
+  vars = {
+    ssh_public_key = var.ssh_public_key
+  }
+}
+
 resource "google_compute_instance" "default" {
-  name         = "ubuntu-test-instance"
+  name         = "cloud-init-test1"
   machine_type = "e2-medium"
   zone         = var.zone
 
@@ -28,7 +41,27 @@ resource "google_compute_instance" "default" {
     }
   }
 
-  metadata_startup_script = "echo 'Hello, Ubuntu!' > /tmp/hello.txt"
+  metadata = {
+    user-data = data.template_file.cloud_init.rendered
+  }
 
-  tags = ["ssh-server"]
+  tags = ["http-server", "https-server", "ssh-server"]
+}
+
+# Firewall rule to allow HTTP, HTTPS and SSH traffic
+resource "google_compute_firewall" "web" {
+  name    = "allow-web"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443", "22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["http-server", "https-server", "ssh-server"]
+}
+
+output "instance_ip" {
+  value = google_compute_instance.default.network_interface[0].access_config[0].nat_ip
 }
