@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
 import requests
+import os
+# import kaggle
 import subprocess
 from datasets import load_dataset_builder
 
@@ -57,7 +59,7 @@ def download_kaggle_dataset(dataset, dest_path):
             return
         
         # Download dataset
-        kaggle.api.dataset_download_files(dataset, path=dest_path, unzip=True)
+        # kaggle.api.dataset_download_files(dataset, path=dest_path, unzip=True)
 
         # Calculate dataset size
         total_size = 0
@@ -97,25 +99,36 @@ def init_project(project_name):
         (new_directory_path / 'config').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'data').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'src').mkdir(parents=True, exist_ok=True)
+        (new_directory_path / 'terraform').mkdir(parents=True, exist_ok=True)
+        (new_directory_path / '.kaggle').mkdir(parents=True, exist_ok=True)
+        print("Directories successfully created!")
     except Exception as error:
         print(f"Error creating project: {error}")
 
-# Containerize the project within the directory and build its image
-# creating a Dockerfile if one does not exist already, the Dockerfile
+# Containerize the data and src directories within the parent directory and build their images
+# creating a Dockerfile for each if one does not exist already, the Dockerfile
 # is currenlty very hardcoded and will need to either be made dynamic
 # or handled elsewhere (Ansible) later
 
 
 def containerize_project(project_path):
+
+    # The parent directory
     project_path = Path(project_path)
 
     if not project_path.is_dir():
         print(f"Error: '{project_path}' is not a valid directory")
         return
 
-    dockerfile_path = project_path / 'Dockerfile'
-    if not dockerfile_path.exists():
-        with open(dockerfile_path, 'w') as f:
+    # Defines the directories to Dockerize for data and src
+    project_path_data = project_path / 'data'
+    project_path_src = project_path / 'src'
+
+    # Creates Data Dockerfile
+    dockerfile_path_data = project_path_data / 'Dockerfile'
+
+    if not dockerfile_path_data.exists():
+        with open(dockerfile_path_data, 'w') as f:
             f.write(f"FROM python:3.9\n")
             f.write(f"WORKDIR /src\n")
             f.write(f"COPY src/ .\n")
@@ -128,11 +141,85 @@ def containerize_project(project_path):
             # f.write(f"CMD ['python', 'NAME_OF_CODE.py']")
 
     try:
-        image_name = project_path.name
-        print(f"building Docker image '{image_name}'...")
-        subprocess.run(['docker', 'build', '-t', image_name,
+        image_name_data = project_path_data.name
+        print(f"building Docker image '{image_name_data}'...")
+        subprocess.run(['docker', 'build', '-t', image_name_data,
                        str(project_path)], check=True)
-        print(f"image '{image_name}' built successfully")
+        print(f"image '{image_name_data}' built successfully")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+    # Creates Src Dockerfile
+    dockerfile_path_src = project_path_src / 'Dockerfile'
+
+    if not dockerfile_path_src.exists():
+        with open(dockerfile_path_src, 'w') as f:
+            f.write(f"FROM python:3.9\n")
+            f.write(f"WORKDIR /src\n")
+            f.write(f"COPY src/ .\n")
+
+    try:
+        image_name_src = project_path_src.name
+        print(f"building Docker image '{image_name_src}'...")
+        subprocess.run(['docker', 'build', '-t', image_name_src,
+                       str(project_path)], check=True)
+        print(f"image '{image_name_src}' built successfully")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+
+# Start a Google Cloud VM Instance. 
+
+def project_vm_start(project_path):
+
+    # The parent directory
+    project_path = Path(project_path)
+    project_mainfile = project_path/'main.tf'
+
+    if not project_mainfile.exists():
+        print(f"Error: '{project_mainfile}' does not exist.")
+        return
+    
+    # Initializes Terraform
+    try:
+        print(f"Starting VM instance...\n")
+        subprocess.run(['terraform', 'init'], check=True)
+        print("Success!\n")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+
+    # Plans Terraform 
+    try:
+        print(f"Planning Terraform...\n")
+        subprocess.run(['terraform', 'plan'], check=True)
+        print("Success!\n")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+    # Applies Terraform Configuration
+
+    try:
+        print(f"Applying Terraform Configuration...\n")
+        subprocess.run(['terraform', 'apply'], check=True)
+        print("Success!\n")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+# Start a Google Cloud VM Instance. 
+
+def project_vm_end():
+    
+    # Destorys VM
+    try:
+        print(f"Ending VM instance...\n")
+        subprocess.run(['terraform', 'destroy'], check=True)
+        print("Success!\n")
 
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
@@ -189,11 +276,15 @@ def cli_entry_point():
 
     parser_info = subparsers.add_parser('info', help='Get VM package info')
 
+    # Initialize a project directory
+
     parser_init = subparsers.add_parser('init', help='Create Cynthus project')
     parser_init.add_argument(
         'project_name',
         help='The name of the project to create'
     )
+
+    # Command to containerize the components of a parent directory
 
     parser_containerize = subparsers.add_parser(
         'containerize', help='Containerize a project directory')
@@ -201,6 +292,22 @@ def cli_entry_point():
         'project_path',
         help='The path to the project directory to containerize'
     )
+
+    # Start a VM instance
+    # Currently set up for Google Cloud
+    
+    parser_containerize = subparsers.add_parser(
+        'VM_start', help='Start a VM instance')
+    parser_containerize.add_argument(
+        'project_path',
+        help='The path to the terraform main.tf file to start the VM'
+    )
+
+    # End VM instance
+    # Currently only tested with Google Cloud
+
+    parser_info = subparsers.add_parser('VM_end', help='End VM instance')
+
 
     parser_push = subparsers.add_parser(
         'push', help='Push a specified image to a specified cloud registry')
@@ -241,12 +348,14 @@ def cli_entry_point():
         ping_intel()
     elif args.command == 'upload':
         model_upload()
-    elif args.command == 'startVM':
-        startVM()
     elif args.command == 'info':
         give_info()
     elif args.command == 'init':
         init_project(args.project_name)
+    elif args.command == 'VM_start':
+        project_vm_start(args.project_path)
+    elif args.command == 'VM_end':
+        project_vm_end()
     elif args.command == 'containerize':
         containerize_project(args.project_path)
     elif args.command == 'push':
