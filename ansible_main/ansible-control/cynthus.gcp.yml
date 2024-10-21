@@ -1,0 +1,18 @@
+plugin: google.cloud.gcp_compute
+zones: 
+  - us-my-region
+projects:
+  - my-project-id
+auth_kind: serviceaccount
+service_account_file: /path/to/service-account.json
+filters:
+  - status = RUNNING
+keyed_groups:
+  # Create groups from GCE labels
+  - prefix: gcp
+    key: labels
+compose:
+  ansible_host: networkInterfaces[0].accessConfigs[0].natIP
+vars:
+  ansible_user: ansible 
+  ansible_ssh_private_key_file: /path/to/private-key
