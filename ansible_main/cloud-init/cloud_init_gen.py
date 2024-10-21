@@ -55,6 +55,14 @@ write_files:
       echo "UUID=$UUID /mnt/disks/client ext4 discard,defaults,nofail 0 2" >> /etc/fstab
       echo "Formatted and mounted disk at /mnt/disks/client" >> /run/log.txt
 
+      sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdc
+      sudo mkdir -p /mnt/disks/src
+      sudo mount -o discard,defaults /dev/sdc /mnt/disks/src
+      sudo chmod a+w /mnt/disks/src
+      sudo cp /etc/fstab /etc/fstab.backup
+      UUID=$(sudo blkid -s UUID -o value /dev/sdc)
+      echo "UUID=$UUID /mnt/disks/src ext4 discard,defaults,nofail 0 2" >> /etc/fstab
+      echo "Formatted and mounted disk at /mnt/disks/src" >> /run/log.txt
 
 runcmd:
   - sudo pip3 install {' '.join(requirements)}
