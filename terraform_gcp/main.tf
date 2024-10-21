@@ -23,8 +23,15 @@ data "template_file" "cloud_init" {
   }
 }
 
-resource "google_compute_disk" "default" {
-  name = "disk-secondary"
+resource "google_compute_disk" "data" {
+  name = "disk-data"
+  type = "pd-standard"
+  zone = var.zone
+  size = "10" # GB
+}
+
+resource "google_compute_disk" "src" {
+  name = "disk-src"
   type = "pd-standard"
   zone = var.zone
   size = "5" # GB
@@ -41,8 +48,12 @@ resource "google_compute_instance" "default" {
     }
   }
   attached_disk {
-    source      = google_compute_disk.default.id
-    device_name = google_compute_disk.default.name
+    source      = google_compute_disk.data.id
+    device_name = google_compute_disk.data.name
+  }
+  attached_disk {
+    source      = google_compute_disk.src.id
+    device_name = google_compute_disk.src.name
   }
 
   network_interface {
