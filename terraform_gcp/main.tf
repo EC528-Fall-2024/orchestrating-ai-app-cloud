@@ -23,6 +23,13 @@ data "template_file" "cloud_init" {
   }
 }
 
+resource "google_compute_disk" "default" {
+  name = "disk-secondary"
+  type = "pd-standard"
+  zone = var.zone
+  size = "5" # GB
+}
+
 resource "google_compute_instance" "default" {
   name         = "cloud-init-test1"
   machine_type = "e2-medium"
@@ -32,6 +39,10 @@ resource "google_compute_instance" "default" {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2204-lts"
     }
+  }
+  attached_disk {
+    source      = google_compute_disk.default.id
+    device_name = google_compute_disk.default.name
   }
 
   network_interface {

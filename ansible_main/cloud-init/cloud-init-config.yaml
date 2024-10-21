@@ -23,7 +23,23 @@ packages:
   - wget
   - vim
 
+write_files:
+  - path: /run/scripts/format_and_mount.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+
+      sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdb
+      sudo mkdir -p /mnt/disks/client
+      sudo mount -o discard,defaults /dev/sdb /mnt/disks/client
+      sudo chmod a+w /mnt/disks/client
+      sudo cp /etc/fstab /etc/fstab.backup
+      UUID=$(sudo blkid -s UUID -o value /dev/sdb)
+      echo "UUID=$UUID /mnt/disks/client ext4 discard,defaults,nofail 0 2" >> /etc/fstab
+      echo "Formatted and mounted disk at /mnt/disks/client" >> /run/log.txt
+
 
 runcmd:
   - sudo pip3 install tensorflow==2.13.0 torch==2.0.1 torchvision==0.15.2 numpy==1.24.3 scipy==1.10.1 pandas==2.0.3 scikit-learn==1.3.0 matplotlib==3.7.2 seaborn==0.12.2 Pillow==10.0.0 opencv-python==4.8.0.74 nltk==3.8.1 transformers==4.30.2 jupyter==1.0.0 tqdm==4.65.0
+  - [ sh, "/run/scripts/format_and_mount.sh" ]
 
