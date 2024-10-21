@@ -40,9 +40,25 @@ packages:
   - wget
   - vim
 
+write_files:
+  - path: /run/scripts/format_and_mount.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+
+      sudo mkfs.ext4 -m 0 -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/sdb
+      sudo mkdir -p /mnt/disks/client
+      sudo mount -o discard,defaults /dev/sdb /mnt/disks/client
+      sudo chmod a+w /mnt/disks/client
+      sudo cp /etc/fstab /etc/fstab.backup
+      UUID=$(sudo blkid -s UUID -o value /dev/sdb)
+      echo "UUID=$UUID /mnt/disks/client ext4 discard,defaults,nofail 0 2" >> /etc/fstab
+      echo "Formatted and mounted disk at /mnt/disks/client" >> /run/log.txt
+
 
 runcmd:
   - sudo pip3 install {' '.join(requirements)}
+  - [ sh, "/run/scripts/format_and_mount.sh" ]
 
 """
     # Write the cloud-init YAML file
