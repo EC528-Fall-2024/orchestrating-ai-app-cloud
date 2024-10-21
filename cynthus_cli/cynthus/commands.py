@@ -76,8 +76,8 @@ def download_kaggle_dataset(dataset, dest_path):
         print(f"Error downloading dataset: {e}")
 
 
-def handle_print():
-    print('For more info, type -h or --help.')
+def model_upload():
+    print('Provide the link to the model you wish to upload: ')
 
 
 def give_info():
@@ -251,8 +251,10 @@ def cli_entry_point():
 
     if args.command == 'ping':
         ping_intel()
-    elif args.command == 'print':
-        handle_print()
+    elif args.command == 'upload':
+        model_upload()
+    elif args.command == 'startVM':
+        startVM()
     elif args.command == 'info':
         give_info()
     elif args.command == 'init':
