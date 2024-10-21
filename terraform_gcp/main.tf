@@ -1,23 +1,15 @@
-variable "zone" {
-  description = "The zone where resources will be created"
-  type        = string
-  default     = "us-east4-a"
-}
-
-variable "ssh_public_key" {
-  description = "The Ed25519 public SSH key to add to the instance"
-  type        = string
-  default     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbUbFFMOV4SKX3B5Jo/1tWXa6kNhRdLoGpQtTB7/uuG suijs@bu.edu"
-}
-
 provider "google" {
-  project = "cynthusgcp-438617"
+  project = var.project_id
   region  = "us-east4"
   zone    = var.zone
 }
 
+data "template_file" "dockerfile" {
+  template = file("/terraform/Dockerfile")
+}
+
 data "template_file" "cloud_init" {
-  template = file("${path.module}/../ansible_main/cloud-init/control_cloudinit.yaml")
+  template = file("/terraform/cloud-init-config.yaml")
   vars = {
     ssh_public_key = var.ssh_public_key
   }
@@ -43,6 +35,7 @@ resource "google_compute_instance" "default" {
 
   metadata = {
     user-data = data.template_file.cloud_init.rendered
+    dockerfile = data.template_file.dockerfile.rendered
   }
 
   tags = ["http-server", "https-server", "ssh-server"]

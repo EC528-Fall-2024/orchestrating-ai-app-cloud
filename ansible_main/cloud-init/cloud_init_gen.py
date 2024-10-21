@@ -1,10 +1,28 @@
 import os
 
+def load_env(env_path):
+    env_vars = {}
+    with open(env_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                key, value = line.split('=', 1)
+                env_vars[key.strip()] = value.strip().strip("'").strip('"')
+    return env_vars
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 requirements_path = os.path.join(current_dir, 'requirements.txt')
+env_path = os.path.join(current_dir, '.env')
 
-# CHANGE THIS SSH KEY
-ssh_key = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbUbFFMOV4SKX3B5Jo/1tWXa6kNhRdLoGpQtTB7/uuG suijs@bu.edu'
+# Load environment variables from .env file
+env_vars = load_env(env_path)
+
+# Use the SSH_PUBLIC_KEY from .env file
+ssh_key = env_vars.get('SSH_PUBLIC_KEY')
+
+if not ssh_key:
+    raise ValueError("SSH_PUBLIC_KEY not found in .env file")
+
 
 def generate_cloud_init_yaml(requirements_path, output_path):
     # Read the requirements.txt file
@@ -14,7 +32,7 @@ def generate_cloud_init_yaml(requirements_path, output_path):
     # Create the cloud-init YAML content
     yaml_content = f"""#cloud-config
 users:
-  - name: user
+  - name: user # change this to the username you wish
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
       # CHANGE THIS SSH KEY
@@ -25,6 +43,8 @@ ssh_pwauth: false
 package_update: true
 package_upgrade: true
 
+
+# Install basic packages
 packages:
   - python3-pip
   - openssh-server
@@ -38,6 +58,7 @@ packages:
   - wget
   - vim
 
+# Installing python packages
 runcmd:
   - sudo pip3 install {' '.join(requirements)}
 """

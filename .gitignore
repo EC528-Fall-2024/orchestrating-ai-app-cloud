@@ -12,3 +12,9 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+# Environment variables file
+.env
+
+# Credentials file
+credentials.json
