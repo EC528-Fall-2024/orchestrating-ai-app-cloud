@@ -5,6 +5,7 @@ provider "registry.terraform.io/hashicorp/google" {
   version = "6.7.0"
   hashes = [
     "h1:LEFMDSgj/Om4bqo2mgrcgXPBvhFyKkq/Z01//4SsWgw=",
+    "h1:sMGHFZFZKvUr8FB1Ocm5612HsMeO4umUu6UW1UAgTds=",
     "zh:16ac63e56986916015637bdc26a93e375aa84f22381d37dea51b227bc8fd58e3",
     "zh:3d27c11cfd55394e247b01dc5d8bf4b892940ac0b66785cf565fbbabe8b8363b",
     "zh:40011688dd3d5294f92bc0d85f30f26c427adc9a0e5c5053ca71a66f322e6edd",
@@ -23,6 +24,7 @@ provider "registry.terraform.io/hashicorp/google" {
 provider "registry.terraform.io/hashicorp/template" {
   version = "2.2.0"
   hashes = [
+    "h1:94qn780bi1qjrbC3uQtjJh3Wkfwd5+tTtJHOb7KTg9w=",
     "h1:LN84cu+BZpVRvYlCzrbPfCRDaIelSyEx/W9Iwwgbnn4=",
     "zh:01702196f0a0492ec07917db7aaa595843d8f171dc195f4c988d2ffca2a06386",
     "zh:09aae3da826ba3d7df69efeb25d146a1de0d03e951d35019a0f80e4f58c89b53",
