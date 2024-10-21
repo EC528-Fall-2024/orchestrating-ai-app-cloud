@@ -2,9 +2,10 @@ import argparse
 from pathlib import Path
 import requests
 import os
-# import kaggle
 import subprocess
-from datasets import load_dataset_builder
+import shutil
+import kaggle
+from datasets import load_dataset
 
 
 def ping_intel():
@@ -41,39 +42,6 @@ def setup_kaggle():
     print("5. Set the permissions of the kaggle.json file to read and write only for the user:")
     print("   chmod 600 ~/.kaggle/kaggle.json")
     print("You are now set up to use the Kaggle API!")
-
-def download_kaggle_dataset(dataset, dest_path):
-    """
-    Download Kaggle dataset and print metadata like size.
-    Args:
-        dataset (str): The Kaggle dataset to download (e.g., 'username/dataset-name')
-        dest_path (str): The local directory where the dataset will be downloaded
-    """
-    # Ensure the destination path exists
-    os.makedirs(dest_path, exist_ok=True)
-
-    try:
-        # Check if Kaggle API key is set
-        if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
-            print("Kaggle API key is not set. Please set it up.")
-            return
-        
-        # Download dataset
-        # kaggle.api.dataset_download_files(dataset, path=dest_path, unzip=True)
-
-        # Calculate dataset size
-        total_size = 0
-        for dirpath, dirnames, filenames in os.walk(dest_path):
-            for f in filenames:
-                fp = os.path.join(dirpath, f)
-                total_size += os.path.getsize(fp)
-
-        total_size_mb = total_size / (1024 * 1024)
-        print(f"Dataset '{dataset}' downloaded to '{dest_path}'")
-        print(f"Total size: {total_size_mb:.2f} MB")
-
-    except Exception as e:
-        print(f"Error downloading dataset: {e}")
 
 
 def model_upload():
@@ -248,29 +216,77 @@ def project_ssh(ssh_key, service):
     pass
 
 
-# UNIMPLEMENTED
-# Pulls data from a public data store and into a specified target cloud container
-# For now, returns dataset size to test API calls
+# Loads a dataset into the data container
 
+def project_datapull(location_type, location):
 
-def project_datapull(url, target):
-    if "huggingface.co" in url:
-        hf_key = url.split("datasets/", 1)
-        builder = load_dataset_builder(hf_key)
-        print("Found dataset of size " + builder.info.download_size)
-        '''
-        import s3fs
-        storage_options = {}
-        fs = s3fs.S3FileSystem(**storage_options)
-        builder.download_and_prepare(output_dir, storage_options=storage_options, file_format="parquet")
-        '''
+    # Path declarations
+    project_path = Path(project_path)
+    if not project_path.is_dir():
+        print(f"Error: '{project_path}' is not a valid directory")
+        return
+    project_path_data = project_path / 'data'
+
+    # Local datasets
+    if location_type == "local_path":
+        try:
+            shutil.move(location, project_path_data)
+            print("All files moved successfully.")
+        except shutil.Error as e:
+            print("Error moving files:", e)
+        except Exception as e:
+            print("Unexpected error:", e)
+
+    # Public datasets
+    elif location_type == 'url':
+        key = location.split("datasets/", 1)
+
+        # Kaggle datasets
+        if "kaggle.com" in location:
+            try:
+                # Check if Kaggle API key is set
+                if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
+                    print("Kaggle API key is not set. Please set it up.")
+                    return
+                
+                # Download dataset
+                kaggle.api.dataset_download_files(key, path=project_path_data, unzip=True)
+            except Exception as error:
+                print(f"Error downloading Kaggle dataset: {error}")
+
+        # Hugging Face datasets
+        elif "huggingface.co" in location:
+            try:
+                dataset = load_dataset(key)
+                dataset.save_to_disk(project_path_data)
+            except Exception as error:
+                print(f"Error downloading Hugging Face dataset: {error}")
+
+    # Argument errors
+    else:
+        print(f"Error: '{type}' is not a valid type")
+        return
+    
+    # Calculate dataset size
+    try:
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(project_path_data):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+
+        total_size_mb = total_size / (1024 * 1024)
+        print(f"Dataset '{key}' downloaded to '{project_path_data}'")
+        print(f"Total size: {total_size_mb:.2f} MB")
+    except Exception as error:
+        print(f"Error calculating dataset size: {error}")
 
 
 def cli_entry_point():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
 
-    parser_request = subparsers.add_parser('ping', help='Ping intel site')
+    parser_ping = subparsers.add_parser('ping', help='Ping intel site')
 
     parser_print = subparsers.add_parser('print', help='Print help message')
 
@@ -296,17 +312,17 @@ def cli_entry_point():
     # Start a VM instance
     # Currently set up for Google Cloud
     
-    parser_containerize = subparsers.add_parser(
+    parser_VM_start = subparsers.add_parser(
         'VM_start', help='Start a VM instance')
-    parser_containerize.add_argument(
+    parser_VM_start.add_argument(
         'project_path',
         help='The path to the terraform main.tf file to start the VM'
     )
 
     # End VM instance
-    # Currently only tested with Google Cloud
+    # Currently set up for Google Cloud
 
-    parser_info = subparsers.add_parser('VM_end', help='End VM instance')
+    parser_VM_end = subparsers.add_parser('VM_end', help='End VM instance')
 
 
     parser_push = subparsers.add_parser(
@@ -332,14 +348,14 @@ def cli_entry_point():
     )
 
     parser_datapull = subparsers.add_parser(
-        'datapull', help='Pull data from a target supported url into a VM')
+        'datapull', help='Source a dataset from a local path or supported API')
     parser_datapull.add_argument(
-        'url',
-        help='The url to be pulled from, supports HuggingFace and Kaggle'
+        'location_type',
+        help='local_path or url'
     )
     parser_datapull.add_argument(
-        'target',
-        help='The target to send the data'
+        'location',
+        help='The local path or url to pull data from'
     )
 
     args = parser.parse_args()
@@ -363,10 +379,6 @@ def cli_entry_point():
     elif args.command == 'ssh':
         project_ssh(args.ssh_key, args.service)
     elif args.command == 'datapull':
-        project_datapull(args.url, args.target)
-    elif args.command == 'setup_kaggle':
-        setup_kaggle()
-    elif args.command == 'download-kaggle':
-        download_kaggle_dataset(args.dataset, args.dest_path)
+        project_datapull(args.location_type, args.location)
     else:
         parser.print_help()
