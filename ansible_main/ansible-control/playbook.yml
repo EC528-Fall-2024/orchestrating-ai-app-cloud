@@ -8,7 +8,7 @@
   hosts: gcp_role_managed
   become: true
   vars_files:
-    - /home/thai/EC528_ansible_test/terraform_test/vars.yml
+    - /path/to/var/file
   tasks:
     - name: create and write service account file to path
       copy:
