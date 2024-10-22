@@ -1,0 +1,6 @@
+# vars.yml
+artifact_b64_src: "/path/to/service-account-encoded.b64"
+artifact_b64_dest: "/path/to/service-account-encoded.b64"
+docker_image_name: "Location-docker.pkg.dev/ProjectID/Repository-name/image-name"
+docker_image_tag: "image-tag"
+gcp_repo_location: "location"
