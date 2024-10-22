@@ -77,7 +77,7 @@ resource "random_id" "rid" {
 
 #Required firewall rules
 resource "google_compute_firewall" "rules" {
-  project     = var.project
+  project     = var.project_id
   name        = "ai-opea-chatqna-${random_id.rid.dec}"
   network     = "default"
   description = "Allows access to OPEA AI ChatQnA"
