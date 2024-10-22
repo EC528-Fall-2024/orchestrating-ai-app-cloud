@@ -147,14 +147,8 @@ def containerize_project(project_path):
 # Pushes the specified image to the specified container registry
 # currently deadlocked by our inability to access Intel API and SSH implementation
 
-
 def project_push(image_name):
-    if (os.name == 'nt'):
-        subprocess.run(["Get-Content", "creds\cynthusgcp-registry.json", "|", "docker",
-                       "login", "-u", "_json_key", "--password-stdin", "https://us-east4-docker.pkg.dev"])
-    else:
-        subprocess.run(["cat", "creds\cynthusgcp-registry.json", "|", "docker", "login",
-                       "-u", "_json_key", "--password-stdin", "https://us-east4-docker.pkg.dev"])
+    # gcp_docker_auth()
     subprocess.run(["docker", "tag", str(
         image_name), f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
 
@@ -167,8 +161,24 @@ def project_push(image_name):
 # platforms include: ()
 
 
-def project_auth(ssh_key, service):
-    pass
+def gcp_docker_auth():
+    cred_path = Path(__file__).parent.parent.parent / 'creds'
+
+    if os.name == 'nt':  # Windows
+        command = "Get-Content cynthusgcp-registry.json"
+        ps_command = ['powershell', '-Command', command]
+        docker_login_command = ['docker', 'login', '-u', '_json_key',
+                                '--password-stdin', 'https://us-east4-docker.pkg.dev']
+
+        with subprocess.Popen(ps_command, cwd=cred_path, stdout=subprocess.PIPE) as ps_proc:
+            subprocess.run(docker_login_command, stdin=ps_proc.stdout)
+
+    else:  # (Linux/Mac)
+        cat_command = ['cat', 'cynthusgcp-registry.json']
+        docker_login_command = ['docker', 'login', '-u', '_json_key',
+                                '--password-stdin', 'https://us-east4-docker.pkg.dev']
+        with subprocess.Popen(cat_command, cwd=cred_path, stdout=subprocess.PIPE) as cat_proc:
+            subprocess.run(docker_login_command, stdin=cat_proc.stdout)
 
 
 # UNIMPLEMENTED
@@ -255,6 +265,9 @@ def cli_entry_point():
         'dest_path', help='The local directory where the dataset will be downloaded'
     )
 
+    parser_gcp_docker_auth = subparsers.add_parser(
+        'gcp-docker-auth', help='Authenticate to GCP Artifact Registry')
+
     args = parser.parse_args()
 
     if args.command == 'ping':
@@ -279,5 +292,7 @@ def cli_entry_point():
         setup_kaggle()
     elif args.command == 'download-kaggle':
         download_kaggle_dataset(args.dataset, args.dest_path)
+    elif args.command == 'gcp-docker-auth':
+        gcp_docker_auth()
     else:
         parser.print_help()
