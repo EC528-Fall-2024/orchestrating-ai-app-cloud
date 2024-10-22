@@ -120,16 +120,10 @@ def containerize_project(project_path):
     dockerfile_path = project_path / 'Dockerfile'
     if not dockerfile_path.exists():
         with open(dockerfile_path, 'w') as f:
-            f.write(f"FROM python:3.9\n")
-            f.write(f"WORKDIR /src\n")
-            f.write(f"COPY src/ .\n")
-
-            # Removed the following because we might want to do installation through
-            # Ansible and because I don't know how to dynamically locate the main
-            # Python file from the user yet
-
-            # f.write(f"RUN pip install -r requirements.txt\n")
-            # f.write(f"CMD ['python', 'NAME_OF_CODE.py']")
+            f.write("FROM alpine:latest\n")
+            f.write("WORKDIR /app\n")
+            f.write("COPY . .\n")
+            f.write("CMD [\"sh\"]\n")
 
     try:
         image_name = project_path.name
