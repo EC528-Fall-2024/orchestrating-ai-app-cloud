@@ -186,8 +186,8 @@ def prepare_project(project_path):
 
 def docker_yaml_create(image_name_src="src", image_name_data="data"):
     docker_yaml = f'''# vars.yml
-    artifact_b64_src: "/path/to/service-account-encoded.b64"
-    artifact_b64_dest: "/path/to/service-account-encoded.b64"
+    artifact_src: "/home/control/cynthus/orchestrating-ai-app-cloud/ansible_main/ansible-control/artifact-reader.json"
+    artifact_dest: "/tmp/artifact-reader.json"
     docker_image_name_src: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_src}"
     docker_image_name_data: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_data}"
     docker_image_tag: "latest"
