@@ -7,7 +7,14 @@ import shutil
 from datasets import load_dataset
 # import kaggle
 from datasets import load_dataset_builder
+# from ...ansible_main.cloud_init import cloud_init_gen
 
+# Declared globally at the top so it can be easily modified
+cred_path = Path(__file__).parent.parent.parent / 'creds'
+# requirements_path =
+# output_path =
+docker_vars_path = Path(__file__).parent.parent.parent / \
+    'ansible_main' / 'ansible_control' / 'vars.yml'
 
 
 def ping_intel():
@@ -110,13 +117,13 @@ def init_project(project_name):
     except Exception as error:
         print(f"Error creating project: {error}")
 
-# Containerize the data and src directories within the parent directory and build their images
+# Prepare the data and src directories within the parent directory and build their images
 # creating a Dockerfile for each if one does not exist already, the Dockerfile
 # is currenlty very hardcoded and will need to either be made dynamic
 # or handled elsewhere (Ansible) later
 
 
-def containerize_project(project_path):
+def prepare_project(project_path):
 
     # The parent directory
     project_path = Path(project_path)
@@ -124,7 +131,6 @@ def containerize_project(project_path):
     if not project_path.is_dir():
         print(f"Error: '{project_path}' is not a valid directory")
         return
-
 
     # Defines the directories to Dockerize for data and src
     project_path_data = project_path / 'data'
@@ -148,7 +154,7 @@ def containerize_project(project_path):
         image_name_data = project_path_data.name
         print(f"building Docker image '{image_name_data}'...")
         subprocess.run(['docker', 'build', '-t', image_name_data,
-                       str(project_path)], check=True)
+                       str(project_path_data)], check=True)
         print(f"image '{image_name_data}' built successfully")
         project_push(image_name_data)
 
@@ -166,15 +172,32 @@ def containerize_project(project_path):
         image_name_src = project_path_src.name
         print(f"building Docker image '{image_name_src}'...")
         subprocess.run(['docker', 'build', '-t', image_name_src,
-                       str(project_path)], check=True)
+                       str(project_path_src)], check=True)
         print(f"image '{image_name_src}' built successfully")
         project_push(image_name_src)
 
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
 
+    docker_yaml_create(image_name_src, image_name_data)
 
-# Start a Google Cloud VM Instance. 
+    # cloud_init_gen.generate_cloud_init_yaml(requirements_path, output_path, image_name_src, image_name_data)
+
+
+def docker_yaml_create(image_name_src="src", image_name_data="data"):
+    docker_yaml = f'''# vars.yml
+    artifact_src: "/home/control/cynthus/orchestrating-ai-app-cloud/ansible_main/ansible-control/artifact-reader.json"
+    artifact_dest: "/tmp/artifact-reader.json"
+    docker_image_name_src: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_src}"
+    docker_image_name_data: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_data}"
+    docker_image_tag: "latest"
+    gcp_repo_location: "us-east4"
+    '''
+    with open(docker_vars_path, "w") as f:
+        f.write(docker_yaml)
+
+# Start a Google Cloud VM Instance.
+
 
 def project_vm_start(project_path):
 
@@ -185,7 +208,7 @@ def project_vm_start(project_path):
     if not project_mainfile.exists():
         print(f"Error: '{project_mainfile}' does not exist.")
         return
-    
+
     # Initializes Terraform
     try:
         print(f"Starting VM instance...\n")
@@ -195,8 +218,7 @@ def project_vm_start(project_path):
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
 
-
-    # Plans Terraform 
+    # Plans Terraform
     try:
         print(f"Planning Terraform...\n")
         subprocess.run(['terraform', 'plan'], check=True)
@@ -215,24 +237,23 @@ def project_vm_start(project_path):
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
 
-# Start a Google Cloud VM Instance. 
+# Start a Google Cloud VM Instance.
+
 
 def project_vm_end():
-    
+
     # Destorys VM
     try:
         print(f"Ending VM instance...\n")
         subprocess.run(['terraform', 'destroy'], check=True)
         print("Success!\n")
 
-
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
 
 
-# UNIMPLEMENTED
 # Pushes the specified image to the specified container registry
-# currently deadlocked by our inability to access Intel API and SSH implementation
+# currently deadlocked on intel by our inability to access Intel API and SSH implementation
 
 def project_push(image_name):
     # gcp_docker_auth()
@@ -249,21 +270,16 @@ def project_push(image_name):
 
 
 def gcp_docker_auth():
-    cred_path = Path(__file__).parent.parent.parent / 'creds'
-
+    docker_login_command = ['docker', 'login', '-u', '_json_key',
+                            '--password-stdin', 'https://us-east4-docker.pkg.dev']
     if os.name == 'nt':  # Windows
         command = "Get-Content cynthusgcp-registry.json"
         ps_command = ['powershell', '-Command', command]
-        docker_login_command = ['docker', 'login', '-u', '_json_key',
-                                '--password-stdin', 'https://us-east4-docker.pkg.dev']
-
         with subprocess.Popen(ps_command, cwd=cred_path, stdout=subprocess.PIPE) as ps_proc:
             subprocess.run(docker_login_command, stdin=ps_proc.stdout)
 
     else:  # (Linux/Mac)
         cat_command = ['cat', 'cynthusgcp-registry.json']
-        docker_login_command = ['docker', 'login', '-u', '_json_key',
-                                '--password-stdin', 'https://us-east4-docker.pkg.dev']
         with subprocess.Popen(cat_command, cwd=cred_path, stdout=subprocess.PIPE) as cat_proc:
             subprocess.run(docker_login_command, stdin=cat_proc.stdout)
 
@@ -300,9 +316,10 @@ def project_datapull(location_type, location):
                 if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
                     print("Kaggle API key is not set. Please set it up.")
                     return
-                
+
                 # Download dataset
-                kaggle.api.dataset_download_files(key, path=project_path_data, unzip=True)
+                kaggle.api.dataset_download_files(
+                    key, path=project_path_data, unzip=True)
             except Exception as error:
                 print(f"Error downloading Kaggle dataset: {error}")
 
@@ -318,7 +335,7 @@ def project_datapull(location_type, location):
     else:
         print(f"Error: '{type}' is not a valid type")
         return
-    
+
     # Calculate dataset size
     try:
         total_size = 0
@@ -352,18 +369,18 @@ def cli_entry_point():
         help='The name of the project to create'
     )
 
-    # Command to containerize the components of a parent directory
+    # Command to prepare the components of a parent directory
 
-    parser_containerize = subparsers.add_parser(
-        'containerize', help='Containerize a project directory')
-    parser_containerize.add_argument(
+    parser_prepare = subparsers.add_parser(
+        'prepare', help='Prepare and push a project directory to the GCP')
+    parser_prepare.add_argument(
         'project_path',
-        help='The path to the project directory to containerize'
+        help='The path to the project directory to prepare'
     )
 
     # Start a VM instance
     # Currently set up for Google Cloud
-    
+
     parser_VM_start = subparsers.add_parser(
         'VM_start', help='Start a VM instance')
     parser_VM_start.add_argument(
@@ -376,17 +393,16 @@ def cli_entry_point():
 
     parser_VM_end = subparsers.add_parser('VM_end', help='End VM instance')
 
-
-    parser_push = subparsers.add_parser(
-        'push', help='Push a specified image to a specified cloud registry')
-    parser_push.add_argument(
-        'image_path',
-        help='The image to containerize'
-    )
-    parser_push.add_argument(
-        'registry',
-        help='The name of the registry'
-    )
+    # parser_push = subparsers.add_parser(
+    #     'push', help='Push a specified image to a specified cloud registry')
+    # parser_push.add_argument(
+    #     'image_path',
+    #     help='The image to prepare'
+    # )
+    # parser_push.add_argument(
+    #     'registry',
+    #     help='The name of the registry'
+    # )
 
     parser_auth = subparsers.add_parser(
         'ssh', help='Authenticate into a specified cloud registry')
@@ -421,7 +437,10 @@ def cli_entry_point():
     )
 
     parser_gcp_docker_auth = subparsers.add_parser(
-        'gcp-docker-auth', help='Authenticate to GCP Artifact Registry')
+        'gcp-docker-auth', help='Authenticate to GCP Artifact Registry (test command)')
+
+    parser_docker_yaml_create = subparsers.add_parser(
+        'docker-yaml-create', help='Create sample yaml file (test command)')
 
     args = parser.parse_args()
 
@@ -437,12 +456,12 @@ def cli_entry_point():
         project_vm_start(args.project_path)
     elif args.command == 'VM_end':
         project_vm_end()
-    elif args.command == 'containerize':
-        containerize_project(args.project_path)
-    elif args.command == 'push':
-        project_push(args.image_path, args.registry)
-    elif args.command == 'ssh':
-        project_ssh(args.ssh_key, args.service)
+    elif args.command == 'prepare':
+        prepare_project(args.project_path)
+    # elif args.command == 'push':
+    #     project_push(args.image_path, args.registry)
+    # elif args.command == 'ssh':
+    #     project_ssh(args.ssh_key, args.service)
     elif args.command == 'datapull':
         project_datapull(args.location_type, args.location)
     elif args.command == 'setup_kaggle':
@@ -451,5 +470,7 @@ def cli_entry_point():
         download_kaggle_dataset(args.dataset, args.dest_path)
     elif args.command == 'gcp-docker-auth':
         gcp_docker_auth()
+    elif args.command == 'docker-yaml-create':
+        docker_yaml_create()
     else:
         parser.print_help()
