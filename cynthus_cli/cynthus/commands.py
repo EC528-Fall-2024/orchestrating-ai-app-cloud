@@ -152,6 +152,9 @@ def project_push(image_name):
     if (os.name == 'nt'):
         subprocess.run(["Get-Content", "creds\cynthusgcp-registry.json", "|", "docker",
                        "login", "-u", "_json_key", "--password-stdin", "https://us-east4-docker.pkg.dev"])
+    else:
+        subprocess.run(["cat", "creds\cynthusgcp-registry.json", "|", "docker", "login",
+                       "-u", "_json_key", "--password-stdin", "https://us-east4-docker.pkg.dev"])
     subprocess.run(["docker", "tag", str(
         image_name), f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
 
