@@ -1,10 +1,27 @@
 import os
 
+def load_env(env_path):
+    env_vars = {}
+    with open(env_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                key, value = line.split('=', 1)
+                env_vars[key.strip()] = value.strip().strip("'").strip('"')
+    return env_vars
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 requirements_path = os.path.join(current_dir, 'requirements.txt')
+env_path = os.path.join(current_dir, '.env')
 
-# CHANGE THIS SSH KEY
-ssh_key = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbUbFFMOV4SKX3B5Jo/1tWXa6kNhRdLoGpQtTB7/uuG suijs@bu.edu'
+# Load environment variables from .env file
+env_vars = load_env(env_path)
+
+# Use the SSH_PUBLIC_KEY from .env file
+ssh_key = env_vars.get('SSH_PUBLIC_KEY')
+
+if not ssh_key:
+    raise ValueError("SSH_PUBLIC_KEY not found in .env file")
 
 
 def generate_cloud_init_yaml(requirements_path, output_path):
@@ -13,13 +30,12 @@ def generate_cloud_init_yaml(requirements_path, output_path):
         requirements = [line.strip() for line in req_file if line.strip() and not line.startswith('#')]
 
     # Create the cloud-init YAML content
-
-    # cloud-init config file
     yaml_content = f"""#cloud-config
 users:
-  - name: user
+  - name: user # change this to the username you wish
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
+      # CHANGE THIS SSH KEY
       - {ssh_key}
 
 ssh_pwauth: false
@@ -27,6 +43,8 @@ ssh_pwauth: false
 package_update: true
 package_upgrade: true
 
+
+# Install basic packages
 packages:
   - python3-pip
   - openssh-server
@@ -39,6 +57,7 @@ packages:
   - curl
   - wget
   - vim
+
 
 write_files:
   - path: /run/scripts/format_and_mount.sh
@@ -67,12 +86,18 @@ write_files:
 runcmd:
   - sudo pip3 install {' '.join(requirements)}
   - [ sh, "/run/scripts/format_and_mount.sh" ]
-
 """
     # Write the cloud-init YAML file
     with open(output_path, 'w') as config_file:
         config_file.write(yaml_content)
 
+# Use an environment variable for the output path, with a default fallback
+default_output_path = 'cloud-init-config.yaml'
+output_path = os.environ.get('CLOUD_INIT_OUTPUT_PATH', default_output_path)
 
-output_path = os.path.join(current_dir, 'cloud-init-config.yaml')
+# Ensure the output directory exists
+os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+
 generate_cloud_init_yaml(requirements_path, output_path)
+
+print(f"Cloud-init config file is located at {output_path}")

@@ -1,8 +1,9 @@
 #cloud-config
 users:
-  - name: user
+  - name: user # change this to the username you wish
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
+      # CHANGE THIS SSH KEY
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbUbFFMOV4SKX3B5Jo/1tWXa6kNhRdLoGpQtTB7/uuG suijs@bu.edu
 
 ssh_pwauth: false
@@ -10,6 +11,8 @@ ssh_pwauth: false
 package_update: true
 package_upgrade: true
 
+
+# Install basic packages
 packages:
   - python3-pip
   - openssh-server

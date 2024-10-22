@@ -20,9 +20,12 @@ Mentorship provided by Shripad Nadgowda at Intel
 
 Sprint Demo Videos:
 - [Sprint 1 Demo](https://drive.google.com/file/d/1Y6o8N7rpiolrclTE44CY9-EwQOUWCRaX/view?usp=sharing)
+- [Sprint 2 Demo](https://drive.google.com/file/d/1r7dno8U-bDXu80lfAFVU6rA1jhGb-X1e/view?usp=sharing)
+
 
 Sprint Slides:
 - [Sprint 1 Slides](https://docs.google.com/presentation/d/1z4AoG5UfYQ2fszpIUro6hpWGW8rE3Tl7FR-4X7SHE4k/edit?usp=sharing)
+- [Sprint 2 Slides](https://docs.google.com/presentation/d/1mee4V68epsujxqhAZcVs1ev7JTiomgGfhy8vQIwue3M/edit?usp=sharing)
 
 ** **
 
@@ -68,10 +71,12 @@ The AI Deployment Platform provides:
 
 - Infrastructure:
   - Terraform for provisioning and managing cloud resources
-  - Ansible for configuration management and application deployment
+  - Cloud-init for initial VM setup and universal package installation
+  - Ansible for ongoing configuration management and application deployment
 
 - AI/ML Frameworks:
   - Native support for popular frameworks like PyTorch and TensorFlow
+  - Automatic environment dependency configuration for custom code files
 
 - Model and Data Management:
   - Integration with HuggingFace for access to pre-trained models and datasets
@@ -134,6 +139,7 @@ Release 2 (Core Infrastructure):
 - Use Terraform to provision resources
 - Begin managing AI workloads on IDC
 - Configure cloud resources with Ansible playbooks (Setup libraries such as PyTorch, TensorFlow etc.)
+- Automatic generation of cloud-init script for custom VM initialization
 - Develop initial CLI for platform interactions
 
 Release 3 (External Integrations):

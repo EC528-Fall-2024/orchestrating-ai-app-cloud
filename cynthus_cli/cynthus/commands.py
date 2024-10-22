@@ -4,8 +4,10 @@ import requests
 import os
 import subprocess
 import shutil
-import kaggle
 from datasets import load_dataset
+# import kaggle
+from datasets import load_dataset_builder
+
 
 
 def ping_intel():
@@ -27,6 +29,7 @@ def ping_intel():
         print('Error:', e)
         return None
 
+
 def setup_kaggle():
     """
     Provides instructions to the user on how to generate and set up the Kaggle API key.
@@ -42,6 +45,40 @@ def setup_kaggle():
     print("5. Set the permissions of the kaggle.json file to read and write only for the user:")
     print("   chmod 600 ~/.kaggle/kaggle.json")
     print("You are now set up to use the Kaggle API!")
+
+
+def download_kaggle_dataset(dataset, dest_path):
+    """
+    Download Kaggle dataset and print metadata like size.
+    Args:
+        dataset (str): The Kaggle dataset to download (e.g., 'username/dataset-name')
+        dest_path (str): The local directory where the dataset will be downloaded
+    """
+    # Ensure the destination path exists
+    os.makedirs(dest_path, exist_ok=True)
+
+    try:
+        # Check if Kaggle API key is set
+        if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
+            print("Kaggle API key is not set. Please set it up.")
+            return
+
+        # Download dataset
+        kaggle.api.dataset_download_files(dataset, path=dest_path, unzip=True)
+
+        # Calculate dataset size
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(dest_path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+
+        total_size_mb = total_size / (1024 * 1024)
+        print(f"Dataset '{dataset}' downloaded to '{dest_path}'")
+        print(f"Total size: {total_size_mb:.2f} MB")
+
+    except Exception as e:
+        print(f"Error downloading dataset: {e}")
 
 
 def model_upload():
@@ -88,6 +125,7 @@ def containerize_project(project_path):
         print(f"Error: '{project_path}' is not a valid directory")
         return
 
+
     # Defines the directories to Dockerize for data and src
     project_path_data = project_path / 'data'
     project_path_src = project_path / 'src'
@@ -97,9 +135,7 @@ def containerize_project(project_path):
 
     if not dockerfile_path_data.exists():
         with open(dockerfile_path_data, 'w') as f:
-            f.write(f"FROM python:3.9\n")
-            f.write(f"WORKDIR /src\n")
-            f.write(f"COPY src/ .\n")
+            f.write("FROM alpine:latest\n")
 
             # Removed the following because we might want to do installation through
             # Ansible and because I don't know how to dynamically locate the main
@@ -114,6 +150,7 @@ def containerize_project(project_path):
         subprocess.run(['docker', 'build', '-t', image_name_data,
                        str(project_path)], check=True)
         print(f"image '{image_name_data}' built successfully")
+        project_push(image_name_data)
 
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
@@ -123,9 +160,7 @@ def containerize_project(project_path):
 
     if not dockerfile_path_src.exists():
         with open(dockerfile_path_src, 'w') as f:
-            f.write(f"FROM python:3.9\n")
-            f.write(f"WORKDIR /src\n")
-            f.write(f"COPY src/ .\n")
+            f.write("FROM alpine:latest\n")
 
     try:
         image_name_src = project_path_src.name
@@ -133,6 +168,7 @@ def containerize_project(project_path):
         subprocess.run(['docker', 'build', '-t', image_name_src,
                        str(project_path)], check=True)
         print(f"image '{image_name_src}' built successfully")
+        project_push(image_name_src)
 
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
@@ -189,6 +225,7 @@ def project_vm_end():
         subprocess.run(['terraform', 'destroy'], check=True)
         print("Success!\n")
 
+
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
 
@@ -197,23 +234,38 @@ def project_vm_end():
 # Pushes the specified image to the specified container registry
 # currently deadlocked by our inability to access Intel API and SSH implementation
 
+def project_push(image_name):
+    # gcp_docker_auth()
+    subprocess.run(["docker", "tag", str(
+        image_name), f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
 
-def project_push(image_path, registry):
-    pass
-    # docker_registry = "REGISTRY_HERE"
-    # subprocess.run(['docker', 'push', f'{docker_registry}/{image_name}'], check=True)
-    # print(f"image successfully pushed to '{docker_registry}'")
+    subprocess.run(
+        ["docker", "push", f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
 
-    # except subprocess.CalledProcessError as error:
-    #     print(f"Error: {error}")
 
 # UNIMPLEMENTED
-# SSH the user into a specified cloud service using their public SSH key, supported
+# Auth the user into a specified cloud service using the supported login method, supported
 # platforms include: ()
 
 
-def project_ssh(ssh_key, service):
-    pass
+def gcp_docker_auth():
+    cred_path = Path(__file__).parent.parent.parent / 'creds'
+
+    if os.name == 'nt':  # Windows
+        command = "Get-Content cynthusgcp-registry.json"
+        ps_command = ['powershell', '-Command', command]
+        docker_login_command = ['docker', 'login', '-u', '_json_key',
+                                '--password-stdin', 'https://us-east4-docker.pkg.dev']
+
+        with subprocess.Popen(ps_command, cwd=cred_path, stdout=subprocess.PIPE) as ps_proc:
+            subprocess.run(docker_login_command, stdin=ps_proc.stdout)
+
+    else:  # (Linux/Mac)
+        cat_command = ['cat', 'cynthusgcp-registry.json']
+        docker_login_command = ['docker', 'login', '-u', '_json_key',
+                                '--password-stdin', 'https://us-east4-docker.pkg.dev']
+        with subprocess.Popen(cat_command, cwd=cred_path, stdout=subprocess.PIPE) as cat_proc:
+            subprocess.run(docker_login_command, stdin=cat_proc.stdout)
 
 
 # Loads a dataset into the data container
@@ -336,15 +388,15 @@ def cli_entry_point():
         help='The name of the registry'
     )
 
-    parser_ssh = subparsers.add_parser(
-        'ssh', help='SSH into a specified cloud registry')
-    parser_ssh.add_argument(
+    parser_auth = subparsers.add_parser(
+        'ssh', help='Authenticate into a specified cloud registry')
+    parser_auth.add_argument(
         'ssh_key',
         help='The public key of the user'
     )
-    parser_ssh.add_argument(
+    parser_auth.add_argument(
         'service',
-        help='The cloud service to SSH into'
+        help='The cloud service to authenticate into'
     )
 
     parser_datapull = subparsers.add_parser(
@@ -357,6 +409,19 @@ def cli_entry_point():
         'location',
         help='The local path or url to pull data from'
     )
+
+    parser_download_kaggle = subparsers.add_parser(
+        'download-kaggle', help='Download dataset from Kaggle'
+    )
+    parser_download_kaggle.add_argument(
+        'dataset', help='The Kaggle dataset to download (e.g., username/dataset-name)'
+    )
+    parser_download_kaggle.add_argument(
+        'dest_path', help='The local directory where the dataset will be downloaded'
+    )
+
+    parser_gcp_docker_auth = subparsers.add_parser(
+        'gcp-docker-auth', help='Authenticate to GCP Artifact Registry')
 
     args = parser.parse_args()
 
@@ -380,5 +445,11 @@ def cli_entry_point():
         project_ssh(args.ssh_key, args.service)
     elif args.command == 'datapull':
         project_datapull(args.location_type, args.location)
+    elif args.command == 'setup_kaggle':
+        setup_kaggle()
+    elif args.command == 'download-kaggle':
+        download_kaggle_dataset(args.dataset, args.dest_path)
+    elif args.command == 'gcp-docker-auth':
+        gcp_docker_auth()
     else:
         parser.print_help()
