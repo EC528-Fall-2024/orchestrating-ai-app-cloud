@@ -5,10 +5,10 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy the requirements file into the container
-COPY ../ansible_main/cloud-init/requirements.txt .
+COPY ../ansible_main/cloud_init/requirements.txt .
 
 # Copy the Python script into the container
-COPY ../ansible_main/cloud-init/cloud_init_gen.py .
+COPY ../ansible_main/cloud_init/cloud_init_gen.py .
 
 # Set environment variable for output path
 ENV CLOUD_INIT_OUTPUT_PATH=cloud-init-config.yaml
