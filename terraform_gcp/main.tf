@@ -22,13 +22,6 @@ resource "google_compute_disk" "data" {
   size = "10" # GB
 }
 
-resource "google_compute_disk" "src" {
-  name = "disk-src"
-  type = "pd-standard"
-  zone = var.zone
-  size = "5" # GB
-}
-
 resource "google_compute_instance" "default" {
   name         = "cloud-init-test1"
   machine_type = "e2-medium"
@@ -42,10 +35,6 @@ resource "google_compute_instance" "default" {
   attached_disk {
     source      = google_compute_disk.data.id
     device_name = google_compute_disk.data.name
-  }
-  attached_disk {
-    source      = google_compute_disk.src.id
-    device_name = google_compute_disk.src.name
   }
 
   network_interface {
@@ -63,18 +52,24 @@ resource "google_compute_instance" "default" {
   tags = ["http-server", "https-server", "ssh-server"]
 }
 
-# Firewall rule to allow HTTP, HTTPS and SSH traffic
-resource "google_compute_firewall" "web" {
-  name    = "allow-web"
-  network = "default"
+#Random ID to minimize the chances of name conflicts
+resource "random_id" "rid" {
+  byte_length = 3
+}
+
+#Required firewall rules
+resource "google_compute_firewall" "rules" {
+  project     = var.project
+  name        = "ai-opea-chatqna-${random_id.rid.dec}"
+  network     = "default"
+  description = "Allows access to OPEA AI ChatQnA"
 
   allow {
     protocol = "tcp"
-    ports    = ["80", "443", "22"]
+    ports    = ["80", "443", "6379", "8001", "6006", "6007", "6000", "7000", "8808", "8000", "8888", "5173", "5174", "9009", "9000"]
   }
-
   source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["http-server", "https-server", "ssh-server"]
+  target_tags   = ["ai-opea-chatqna-${random_id.rid.dec}"]
 }
 
 output "instance_ip" {

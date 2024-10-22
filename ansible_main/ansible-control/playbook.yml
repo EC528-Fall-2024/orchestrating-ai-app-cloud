@@ -1,6 +1,0 @@
----
-- name: Install Docker on managed instances
-  hosts: gcp_role_managed
-  become: true 
-  roles:
-    - docker-install
