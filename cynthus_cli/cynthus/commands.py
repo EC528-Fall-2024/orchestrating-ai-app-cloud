@@ -7,12 +7,14 @@ import shutil
 from datasets import load_dataset
 # import kaggle
 from datasets import load_dataset_builder
-from ansible_main.cloud_init import cloud_init_gen
+# from ...ansible_main.cloud_init import cloud_init_gen
 
 # Declared globally at the top so it can be easily modified
 cred_path = Path(__file__).parent.parent.parent / 'creds'
 # requirements_path =
 # output_path =
+docker_vars_path = Path(__file__).parent.parent.parent / \
+    'ansible_main' / 'ansible_control' / 'vars.yml'
 
 
 def ping_intel():
@@ -152,7 +154,7 @@ def prepare_project(project_path):
         image_name_data = project_path_data.name
         print(f"building Docker image '{image_name_data}'...")
         subprocess.run(['docker', 'build', '-t', image_name_data,
-                       str(project_path)], check=True)
+                       str(project_path_data)], check=True)
         print(f"image '{image_name_data}' built successfully")
         project_push(image_name_data)
 
@@ -170,17 +172,32 @@ def prepare_project(project_path):
         image_name_src = project_path_src.name
         print(f"building Docker image '{image_name_src}'...")
         subprocess.run(['docker', 'build', '-t', image_name_src,
-                       str(project_path)], check=True)
+                       str(project_path_src)], check=True)
         print(f"image '{image_name_src}' built successfully")
         project_push(image_name_src)
 
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
 
+    docker_yaml_create(image_name_src, image_name_data)
+
     # cloud_init_gen.generate_cloud_init_yaml(requirements_path, output_path, image_name_src, image_name_data)
 
 
+def docker_yaml_create(image_name_src="src", image_name_data="data"):
+    docker_yaml = f'''# vars.yml
+    artifact_b64_src: "/path/to/service-account-encoded.b64"
+    artifact_b64_dest: "/path/to/service-account-encoded.b64"
+    docker_image_name_src: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_src}"
+    docker_image_name_data: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_data}"
+    docker_image_tag: "latest"
+    gcp_repo_location: "us-east4"
+    '''
+    with open(docker_vars_path, "w") as f:
+        f.write(docker_yaml)
+
 # Start a Google Cloud VM Instance.
+
 
 def project_vm_start(project_path):
 
@@ -420,7 +437,10 @@ def cli_entry_point():
     )
 
     parser_gcp_docker_auth = subparsers.add_parser(
-        'gcp-docker-auth', help='Authenticate to GCP Artifact Registry')
+        'gcp-docker-auth', help='Authenticate to GCP Artifact Registry (test command)')
+
+    parser_docker_yaml_create = subparsers.add_parser(
+        'docker-yaml-create', help='Create sample yaml file (test command)')
 
     args = parser.parse_args()
 
@@ -440,8 +460,8 @@ def cli_entry_point():
         prepare_project(args.project_path)
     # elif args.command == 'push':
     #     project_push(args.image_path, args.registry)
-    elif args.command == 'ssh':
-        project_ssh(args.ssh_key, args.service)
+    # elif args.command == 'ssh':
+    #     project_ssh(args.ssh_key, args.service)
     elif args.command == 'datapull':
         project_datapull(args.location_type, args.location)
     elif args.command == 'setup_kaggle':
@@ -450,5 +470,7 @@ def cli_entry_point():
         download_kaggle_dataset(args.dataset, args.dest_path)
     elif args.command == 'gcp-docker-auth':
         gcp_docker_auth()
+    elif args.command == 'docker-yaml-create':
+        docker_yaml_create()
     else:
         parser.print_help()
