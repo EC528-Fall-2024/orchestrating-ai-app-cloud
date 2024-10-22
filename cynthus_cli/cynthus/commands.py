@@ -121,9 +121,6 @@ def containerize_project(project_path):
     if not dockerfile_path.exists():
         with open(dockerfile_path, 'w') as f:
             f.write("FROM alpine:latest\n")
-            f.write("WORKDIR /app\n")
-            f.write("COPY . .\n")
-            f.write("CMD [\"sh\"]\n")
 
     try:
         image_name = project_path.name
