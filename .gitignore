@@ -18,3 +18,5 @@ terraform.rc
 
 # Credentials file
 credentials.json
+
+creds

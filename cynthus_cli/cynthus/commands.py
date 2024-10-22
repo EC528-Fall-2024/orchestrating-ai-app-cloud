@@ -3,7 +3,7 @@ from pathlib import Path
 import requests
 import subprocess
 import os
-import kaggle
+# import kaggle
 from datasets import load_dataset_builder
 
 
@@ -26,6 +26,7 @@ def ping_intel():
         print('Error:', e)
         return None
 
+
 def setup_kaggle():
     """
     Provides instructions to the user on how to generate and set up the Kaggle API key.
@@ -42,6 +43,7 @@ def setup_kaggle():
     print("   chmod 600 ~/.kaggle/kaggle.json")
     print("You are now set up to use the Kaggle API!")
 
+
 def download_kaggle_dataset(dataset, dest_path):
     """
     Download Kaggle dataset and print metadata like size.
@@ -57,7 +59,7 @@ def download_kaggle_dataset(dataset, dest_path):
         if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
             print("Kaggle API key is not set. Please set it up.")
             return
-        
+
         # Download dataset
         kaggle.api.dataset_download_files(dataset, path=dest_path, unzip=True)
 
@@ -135,6 +137,7 @@ def containerize_project(project_path):
         subprocess.run(['docker', 'build', '-t', image_name,
                        str(project_path)], check=True)
         print(f"image '{image_name}' built successfully")
+        project_push(image_name)
 
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
@@ -145,21 +148,20 @@ def containerize_project(project_path):
 # currently deadlocked by our inability to access Intel API and SSH implementation
 
 
-def project_push(image_path, registry):
-    pass
-    # docker_registry = "REGISTRY_HERE"
-    # subprocess.run(['docker', 'push', f'{docker_registry}/{image_name}'], check=True)
-    # print(f"image successfully pushed to '{docker_registry}'")
+def project_push(image_name):
+    subprocess.run(["docker", "tag", str(
+        image_name), f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
 
-    # except subprocess.CalledProcessError as error:
-    #     print(f"Error: {error}")
+    subprocess.run(
+        ["docker", "push", f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
+
 
 # UNIMPLEMENTED
-# SSH the user into a specified cloud service using their public SSH key, supported
+# Auth the user into a specified cloud service using the supported login method, supported
 # platforms include: ()
 
 
-def project_ssh(ssh_key, service):
+def project_auth(ssh_key, service):
     pass
 
 
@@ -215,15 +217,15 @@ def cli_entry_point():
         help='The name of the registry'
     )
 
-    parser_ssh = subparsers.add_parser(
-        'ssh', help='SSH into a specified cloud registry')
-    parser_ssh.add_argument(
+    parser_auth = subparsers.add_parser(
+        'ssh', help='Authenticate into a specified cloud registry')
+    parser_auth.add_argument(
         'ssh_key',
         help='The public key of the user'
     )
-    parser_ssh.add_argument(
+    parser_auth.add_argument(
         'service',
-        help='The cloud service to SSH into'
+        help='The cloud service to authenticate into'
     )
 
     parser_datapull = subparsers.add_parser(
@@ -238,7 +240,7 @@ def cli_entry_point():
     )
 
     parser_download_kaggle = subparsers.add_parser(
-    'download-kaggle', help='Download dataset from Kaggle'
+        'download-kaggle', help='Download dataset from Kaggle'
     )
     parser_download_kaggle.add_argument(
         'dataset', help='The Kaggle dataset to download (e.g., username/dataset-name)'
