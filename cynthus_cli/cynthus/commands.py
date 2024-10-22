@@ -148,7 +148,7 @@ def containerize_project(project_path):
         image_name_data = project_path_data.name
         print(f"building Docker image '{image_name_data}'...")
         subprocess.run(['docker', 'build', '-t', image_name_data,
-                       str(project_path)], check=True)
+                       str(project_path_data)], check=True)
         print(f"image '{image_name_data}' built successfully")
         project_push(image_name_data)
 
@@ -166,7 +166,7 @@ def containerize_project(project_path):
         image_name_src = project_path_src.name
         print(f"building Docker image '{image_name_src}'...")
         subprocess.run(['docker', 'build', '-t', image_name_src,
-                       str(project_path)], check=True)
+                       str(project_path_src)], check=True)
         print(f"image '{image_name_src}' built successfully")
         project_push(image_name_src)
 
