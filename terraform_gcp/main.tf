@@ -1,3 +1,7 @@
+resource "random_id" "rid" {
+  byte_length = 3
+}
+
 provider "google" {
   project = var.project_id
   region  = "us-east4"
@@ -30,8 +34,8 @@ resource "google_compute_disk" "src" {
 }
 
 resource "google_compute_instance" "default" {
-  name         = "cloud-init-test1"
-  machine_type = "e2-medium"
+  name         = "ai-opea-chatqna-${random_id.rid.dec}"
+  machine_type = "c4-highcpu-48"
   zone         = var.zone
 
   boot_disk {
@@ -60,7 +64,21 @@ resource "google_compute_instance" "default" {
     dockerfile = data.template_file.dockerfile.rendered
   }
 
-  tags = ["http-server", "https-server", "ssh-server"]
+  tags = ["ai-opea-chatqna-${random_id.rid.dec}", "http-server", "https-server", "ssh-server"]
+}
+
+resource "google_compute_firewall" "rules" {
+  project     = var.project_id
+  name        = "ai-opea-chatqna-${random_id.rid.dec}"
+  network     = "default"
+  description = "Allows access to OPEA AI ChatQnA"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443", "6379", "8001", "6006", "6007", "6000", "7000", "8808", "8000", "8888", "5173", "5174", "9009", "9000"]
+  }
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["ai-opea-chatqna-${random_id.rid.dec}"]
 }
 
 # Firewall rule to allow HTTP, HTTPS and SSH traffic
