@@ -10,13 +10,17 @@
   vars_files:
     - /path/to/var/file
   tasks:
+    - name: Install docker-py
+      pip:
+          name: docker
+          state: present
     - name: create and write service account file to path
       copy:
-        src: "{{ artifact_b64_src }}"
-        dest: "{{ artifact_b64_dest }}"
+        src: "{{ artifact_src }}"
+        dest: "{{ artifact_dest }}"
         mode: '0644'
     - name: authenticate with google cloud
-      shell: "cat {{ artifact_b64_dest }} | docker login -u _json_key_base64 --password-stdin https://{{ gcp_repo_location }}-docker.pkg.dev"
+      shell: "cat {{ artifact_dest }} | docker login -u _json_key --password-stdin https://{{ gcp_repo_location }}-docker.pkg.dev"
       args:
         executable: /bin/bash
     - name: Pull the Docker image
@@ -31,4 +35,5 @@
           image: "{{ docker_image_name }}:{{ docker_image_tag }}"
           state: started
           restart_policy: always
+
 
