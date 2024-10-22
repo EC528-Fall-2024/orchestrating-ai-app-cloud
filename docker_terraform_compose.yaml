@@ -1,0 +1,17 @@
+services:
+  terraform:
+    build:
+      context: .
+      dockerfile: docker/terraform_gcp_docker/Dockerfile
+    volumes:
+      - ./terraform_gcp:/terraform
+      - ./.env:/terraform/.env
+      - ./ansible_main/cloud-init/cloud-init-config.yaml:/terraform/cloud-init-config.yaml
+      - ./docker/terraform_gcp_docker/Dockerfile:/terraform/Dockerfile
+      - ./terraform_gcp/terraform.tfvars:/terraform/terraform.tfvars
+      - ./terraform_gcp/credentials.json:/terraform/credentials.json
+    env_file: .env
+    working_dir: /terraform
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/terraform/credentials.json
+    entrypoint: ["terraform"]
