@@ -1,0 +1,5 @@
+zone = ""
+ssh_public_key = "PROJECT_ID=cynthusgcp-438617
+SSH_PUBLIC_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDr/2fh1JOdncSFZF5kxT+ONLoiPX+VUozPalI7Q1Gr5 control@control-ansible"
+CRED
+project_id = "cynthusgcp-438617"
