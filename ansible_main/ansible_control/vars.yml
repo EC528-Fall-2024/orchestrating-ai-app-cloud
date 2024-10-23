@@ -1,7 +1,8 @@
 # vars.yml
-artifact_b64_src: "/path/to/service-account-encoded.b64"
-artifact_b64_dest: "/path/to/service-account-encoded.b64"
-docker_image_name_src: "Location-docker.pkg.dev/ProjectID/Repository-name/image-name"
-docker_image_name_data: "Location-docker.pkg.dev/ProjectID/Repository-name/image-name"
-docker_image_tag: "image-tag"
-gcp_repo_location: "location"
+    artifact_src: "/home/control/cynthus/orchestrating-ai-app-cloud/ansible_main/ansible_control/artifact-reader.json"
+    artifact_dest: "/tmp/artifact-reader.json"
+    docker_image_name_src: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/src"
+    docker_image_name_data: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/data"
+    docker_image_tag: "latest"
+    gcp_repo_location: "us-east4"
+    
