@@ -20,10 +20,10 @@ data "template_file" "cloud_init" {
 }
 
 resource "google_compute_disk" "data" {
-  name = "disk-data"
-  type = "pd-standard"
-  zone = var.zone
-  size = "10" # GB
+  name  = "cynthus-compute-disk-${random_id.rid.dec}"
+  type  = "pd-standard"
+  zone  = var.zone
+  size  = 10 // Size in GB
 }
 
 resource "google_compute_instance" "default" {
