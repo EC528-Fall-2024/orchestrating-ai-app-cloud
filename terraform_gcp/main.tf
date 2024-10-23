@@ -53,6 +53,11 @@ resource "google_compute_instance" "default" {
     dockerfile = data.template_file.dockerfile.rendered
   }
 
+  labels = {
+    role        = "managed"
+    environment = "development"
+  }
+
   tags = ["ai-opea-chatqna-${random_id.rid.dec}", "http-server", "https-server", "ssh-server"]
 }
 
