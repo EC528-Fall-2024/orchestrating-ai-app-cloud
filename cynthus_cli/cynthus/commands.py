@@ -15,6 +15,8 @@ cred_path = Path(__file__).parent.parent.parent / 'creds'
 # output_path =
 docker_vars_path = Path(__file__).parent.parent.parent / \
     'ansible_main' / 'ansible_control' / 'vars.yml'
+requirements_path = Path(__file__).parent.parent.parent / \
+    'ansible_main' / 'cloud_init' / 'requirements.txt'
 
 
 def ping_intel():
@@ -132,9 +134,17 @@ def prepare_project(project_path):
         print(f"Error: '{project_path}' is not a valid directory")
         return
 
-    # Defines the directories to Dockerize for data and src
     project_path_data = project_path / 'data'
     project_path_src = project_path / 'src'
+
+    if project_path_src.is_dir():
+        try:
+            subprocess.run(['pipreqs', str(project_path_src),
+                           '--savepath', str(requirements_path)], check=True)
+        except subprocess.CalledProcessError as error:
+            print(f"Error generating requirements.txt: {error}")
+    else:
+        print(f"Error: '{project_path_src}' directory does not exist")
 
     # Creates Data Dockerfile
     dockerfile_path_data = project_path_data / 'Dockerfile'
