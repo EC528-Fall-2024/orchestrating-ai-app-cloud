@@ -4,7 +4,6 @@ sudo docker compose -f docker_cloud_init.yaml build
 
 sudo docker compose -f docker_cloud_init.yaml up
 
-# Build the Docker images
 sudo docker compose -f docker_terraform_compose.yaml build
 
 # Initialize Terraform
