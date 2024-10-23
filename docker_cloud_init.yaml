@@ -5,6 +5,6 @@ services:
       dockerfile: docker/cloud_init_docker/Dockerfile
     volumes:
       - ./.env:/app/.env
-      - ./ansible_main/cloud-init/cloud-init-config.yaml:/app/cloud-init-config.yaml
+      - ./ansible_main/cloud_init/cloud-init-config.yaml:/app/cloud-init-config.yaml
     environment:
       - CLOUD_INIT_OUTPUT_PATH=/app/cloud-init-config.yaml
