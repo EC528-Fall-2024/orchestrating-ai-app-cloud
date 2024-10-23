@@ -21,11 +21,15 @@ Mentorship provided by Shripad Nadgowda at Intel
 Sprint Demo Videos:
 - [Sprint 1 Demo](https://drive.google.com/file/d/1Y6o8N7rpiolrclTE44CY9-EwQOUWCRaX/view?usp=sharing)
 - [Sprint 2 Demo](https://drive.google.com/file/d/1r7dno8U-bDXu80lfAFVU6rA1jhGb-X1e/view?usp=sharing)
+- [Sprint 3 Demo](https://drive.google.com/file/d/1eMly8_TVdyiS4ya3N4kQN-CgwZXLV_Ih/view?usp=drive_link)
+
 
 
 Sprint Slides:
 - [Sprint 1 Slides](https://docs.google.com/presentation/d/1z4AoG5UfYQ2fszpIUro6hpWGW8rE3Tl7FR-4X7SHE4k/edit?usp=sharing)
 - [Sprint 2 Slides](https://docs.google.com/presentation/d/1mee4V68epsujxqhAZcVs1ev7JTiomgGfhy8vQIwue3M/edit?usp=sharing)
+- [Sprint 3 Slides](https://docs.google.com/presentation/d/14hvVDBF61SQPKwuKxjp6b9_vxLr4BHbKBmncmGk4YH4/edit?usp=sharing)
+
 
 ** **
 
