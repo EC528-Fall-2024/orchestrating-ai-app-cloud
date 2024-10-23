@@ -15,6 +15,8 @@ cred_path = Path(__file__).parent.parent.parent / 'creds'
 # output_path =
 docker_vars_path = Path(__file__).parent.parent.parent / \
     'ansible_main' / 'ansible_control' / 'vars.yml'
+requirements_path = Path(__file__).parent.parent.parent / \
+    'ansible_main' / 'cloud_init' / 'requirements.txt'
 
 
 def ping_intel():
@@ -132,9 +134,17 @@ def prepare_project(project_path):
         print(f"Error: '{project_path}' is not a valid directory")
         return
 
-    # Defines the directories to Dockerize for data and src
     project_path_data = project_path / 'data'
     project_path_src = project_path / 'src'
+
+    if project_path_src.is_dir():
+        try:
+            subprocess.run(['pipreqs', str(project_path_src),
+                           '--savepath', str(requirements_path)], check=True)
+        except subprocess.CalledProcessError as error:
+            print(f"Error generating requirements.txt: {error}")
+    else:
+        print(f"Error: '{project_path_src}' directory does not exist")
 
     # Creates Data Dockerfile
     dockerfile_path_data = project_path_data / 'Dockerfile'
@@ -142,13 +152,6 @@ def prepare_project(project_path):
     if not dockerfile_path_data.exists():
         with open(dockerfile_path_data, 'w') as f:
             f.write("FROM alpine:latest\n")
-
-            # Removed the following because we might want to do installation through
-            # Ansible and because I don't know how to dynamically locate the main
-            # Python file from the user yet
-
-            # f.write(f"RUN pip install -r requirements.txt\n")
-            # f.write(f"CMD ['python', 'NAME_OF_CODE.py']")
 
     try:
         image_name_data = project_path_data.name
@@ -186,7 +189,7 @@ def prepare_project(project_path):
 
 def docker_yaml_create(image_name_src="src", image_name_data="data"):
     docker_yaml = f'''# vars.yml
-    artifact_src: "/home/control/cynthus/orchestrating-ai-app-cloud/ansible_main/ansible-control/artifact-reader.json"
+    artifact_src: "/home/control/cynthus/orchestrating-ai-app-cloud/ansible_main/ansible_control/artifact-reader.json"
     artifact_dest: "/tmp/artifact-reader.json"
     docker_image_name_src: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_src}"
     docker_image_name_data: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_data}"

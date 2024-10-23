@@ -1,3 +1,7 @@
+resource "random_id" "rid" {
+  byte_length = 3
+}
+
 provider "google" {
   project = var.project_id
   region  = "us-east4"
@@ -23,7 +27,7 @@ resource "google_compute_disk" "data" {
 }
 
 resource "google_compute_instance" "default" {
-  name         = "cloud-init-test1"
+  name         = "cynthus-compute-instance-${random_id.rid.dec}"
   machine_type = "e2-medium"
   zone         = var.zone
 
@@ -49,18 +53,17 @@ resource "google_compute_instance" "default" {
     dockerfile = data.template_file.dockerfile.rendered
   }
 
-  tags = ["http-server", "https-server", "ssh-server"]
+  labels = {
+    role        = "managed"
+    environment = "development"
+  }
+
+  tags = ["cynthus-compute-instance-${random_id.rid.dec}", "http-server", "https-server", "ssh-server"]
 }
 
-#Random ID to minimize the chances of name conflicts
-resource "random_id" "rid" {
-  byte_length = 3
-}
-
-#Required firewall rules
 resource "google_compute_firewall" "rules" {
-  project     = var.project
-  name        = "ai-opea-chatqna-${random_id.rid.dec}"
+  project     = var.project_id
+  name        = "cynthus-compute-instance-${random_id.rid.dec}"
   network     = "default"
   description = "Allows access to OPEA AI ChatQnA"
 
@@ -69,7 +72,7 @@ resource "google_compute_firewall" "rules" {
     ports    = ["80", "443", "6379", "8001", "6006", "6007", "6000", "7000", "8808", "8000", "8888", "5173", "5174", "9009", "9000"]
   }
   source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["ai-opea-chatqna-${random_id.rid.dec}"]
+  target_tags   = ["cynthus-compute-instance-${random_id.rid.dec}"]
 }
 
 output "instance_ip" {
