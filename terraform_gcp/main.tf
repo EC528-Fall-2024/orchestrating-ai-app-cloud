@@ -28,7 +28,7 @@ resource "google_compute_disk" "data" {
 
 resource "google_compute_instance" "default" {
   name         = "ai-opea-chatqna-${random_id.rid.dec}"
-  machine_type = "c4-highcpu-48"
+  machine_type = "e2-medium"
   zone         = var.zone
 
   boot_disk {
