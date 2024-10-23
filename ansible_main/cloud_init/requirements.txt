@@ -1,6 +1,2 @@
-# Deep Learning Frameworks
-pandas
 numpy
-
-# GPU Support (uncomment if using CUDA-enabled GPU)
-# cupy-cuda11x==11.0.0
+tensorflow
