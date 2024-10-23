@@ -35,10 +35,9 @@ def generate_cloud_init_yaml(requirements_path, output_path, image_name_src, ima
     # Create the cloud-init YAML content
     yaml_content = f"""#cloud-config
 users:
-  - name: user # change this to the username you wish
+  - name: cynthus
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
-      # CHANGE THIS SSH KEY
       - {ssh_key}
 
 ssh_pwauth: false
