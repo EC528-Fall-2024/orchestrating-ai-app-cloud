@@ -26,7 +26,7 @@ if not ssh_key:
     raise ValueError("SSH_PUBLIC_KEY not found in .env file")
 
 
-def generate_cloud_init_yaml(requirements_path, output_path, image_name_src, image_name_data):
+def generate_cloud_init_yaml(requirements_path, output_path):
     # Read the requirements.txt file
     with open(requirements_path, 'r') as req_file:
         requirements = [
