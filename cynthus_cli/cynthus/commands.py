@@ -5,7 +5,9 @@ import os
 import subprocess
 import shutil
 from datasets import load_dataset
-# import kaggle
+from .kaggle_funcs import *
+from .terraform_funcs import *
+from .project_setup import *
 from datasets import load_dataset_builder
 # from ...ansible_main.cloud_init import cloud_init_gen
 
@@ -19,258 +21,12 @@ requirements_path = Path(__file__).parent.parent.parent / \
     'ansible_main' / 'cloud_init' / 'requirements.txt'
 
 
-def ping_intel():
-
-    try:
-        # Make a GET request to the API endpoint using requests.get()
-        r = requests.get(
-            'https://compute-us-region-2-api.cloud.intel.com/openapiv2/#/v1/ping')
-
-        # Check if the request was successful (status code 200)
-        if r.status_code == 200:
-            print('Received response')
-            return None
-        else:
-            print('Error:', r.status_code)
-            return None
-
-    except requests.exceptions.RequestException as e:
-        print('Error:', e)
-        return None
-
-
-def setup_kaggle():
-    """
-    Provides instructions to the user on how to generate and set up the Kaggle API key.
-    """
-    print("To set up your Kaggle API key, follow these steps:")
-    print("0.5 If you already have an Kaggle API key, use setup_kaggle_api")
-    print("1. Go to your Kaggle account settings page: https://www.kaggle.com/account")
-    print("2. Scroll down to the 'API' section.")
-    print("3. Click on 'Create New API Token'. This will download a file named 'kaggle.json'.")
-    print("4. Move this file to the directory ~/.kaggle/. If the directory does not exist, create it.")
-    print("   You can use the following command:")
-    print("   mkdir -p ~/.kaggle && mv /path/to/your/downloaded/kaggle.json ~/.kaggle/")
-    print("5. Set the permissions of the kaggle.json file to read and write only for the user:")
-    print("   chmod 600 ~/.kaggle/kaggle.json")
-    print("You are now set up to use the Kaggle API!")
-
-
-def download_kaggle_dataset(dataset, dest_path):
-    """
-    Download Kaggle dataset and print metadata like size.
-    Args:
-        dataset (str): The Kaggle dataset to download (e.g., 'username/dataset-name')
-        dest_path (str): The local directory where the dataset will be downloaded
-    """
-    # Ensure the destination path exists
-    os.makedirs(dest_path, exist_ok=True)
-
-    try:
-        # Check if Kaggle API key is set
-        if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
-            print("Kaggle API key is not set. Please set it up.")
-            return
-
-        # Download dataset
-        kaggle.api.dataset_download_files(dataset, path=dest_path, unzip=True)
-
-        # Calculate dataset size
-        total_size = 0
-        for dirpath, dirnames, filenames in os.walk(dest_path):
-            for f in filenames:
-                fp = os.path.join(dirpath, f)
-                total_size += os.path.getsize(fp)
-
-        total_size_mb = total_size / (1024 * 1024)
-        print(f"Dataset '{dataset}' downloaded to '{dest_path}'")
-        print(f"Total size: {total_size_mb:.2f} MB")
-
-    except Exception as e:
-        print(f"Error downloading dataset: {e}")
-
-
-def model_upload():
-    print('Provide the link to the model you wish to upload: ')
-
-
 def give_info():
     print('The VM package info can be found below: ')
-
-# Initializes the project with the following directory strcuture
-# project |
-#         - src
-#         - data
-#         - config
-
-
-def init_project(project_name):
-    current_path = Path.cwd()
-    new_directory_path = current_path / project_name
-
-    try:
-        new_directory_path.mkdir(parents=True, exist_ok=True)
-        (new_directory_path / 'config').mkdir(parents=True, exist_ok=True)
-        (new_directory_path / 'data').mkdir(parents=True, exist_ok=True)
-        (new_directory_path / 'src').mkdir(parents=True, exist_ok=True)
-        (new_directory_path / 'terraform').mkdir(parents=True, exist_ok=True)
-        (new_directory_path / '.kaggle').mkdir(parents=True, exist_ok=True)
-        print("Directories successfully created!")
-    except Exception as error:
-        print(f"Error creating project: {error}")
-
-# Prepare the data and src directories within the parent directory and build their images
-# creating a Dockerfile for each if one does not exist already, the Dockerfile
-# is currenlty very hardcoded and will need to either be made dynamic
-# or handled elsewhere (Ansible) later
-
-
-def prepare_project(project_path):
-
-    # The parent directory
-    project_path = Path(project_path)
-
-    if not project_path.is_dir():
-        print(f"Error: '{project_path}' is not a valid directory")
-        return
-
-    project_path_data = project_path / 'data'
-    project_path_src = project_path / 'src'
-
-    if project_path_src.is_dir():
-        try:
-            subprocess.run(['pipreqs', str(project_path_src),
-                           '--savepath', str(requirements_path)], check=True)
-        except subprocess.CalledProcessError as error:
-            print(f"Error generating requirements.txt: {error}")
-    else:
-        print(f"Error: '{project_path_src}' directory does not exist")
-
-    # Creates Data Dockerfile
-    dockerfile_path_data = project_path_data / 'Dockerfile'
-
-    if not dockerfile_path_data.exists():
-        with open(dockerfile_path_data, 'w') as f:
-            f.write("FROM alpine:latest\n")
-
-    try:
-        image_name_data = project_path_data.name
-        print(f"building Docker image '{image_name_data}'...")
-        subprocess.run(['docker', 'build', '-t', image_name_data,
-                       str(project_path_data)], check=True)
-        print(f"image '{image_name_data}' built successfully")
-        project_push(image_name_data)
-
-    except subprocess.CalledProcessError as error:
-        print(f"Error: {error}")
-
-    # Creates Src Dockerfile
-    dockerfile_path_src = project_path_src / 'Dockerfile'
-
-    if not dockerfile_path_src.exists():
-        with open(dockerfile_path_src, 'w') as f:
-            f.write("FROM alpine:latest\n")
-
-    try:
-        image_name_src = project_path_src.name
-        print(f"building Docker image '{image_name_src}'...")
-        subprocess.run(['docker', 'build', '-t', image_name_src,
-                       str(project_path_src)], check=True)
-        print(f"image '{image_name_src}' built successfully")
-        project_push(image_name_src)
-
-    except subprocess.CalledProcessError as error:
-        print(f"Error: {error}")
-
-    docker_yaml_create(image_name_src, image_name_data)
-
-    # cloud_init_gen.generate_cloud_init_yaml(requirements_path, output_path, image_name_src, image_name_data)
-
-
-def docker_yaml_create(image_name_src="src", image_name_data="data"):
-    docker_yaml = f'''# vars.yml
-    artifact_src: "/home/control/cynthus/orchestrating-ai-app-cloud/ansible_main/ansible_control/artifact-reader.json"
-    artifact_dest: "/tmp/artifact-reader.json"
-    docker_image_name_src: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_src}"
-    docker_image_name_data: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_data}"
-    docker_image_tag: "latest"
-    gcp_repo_location: "us-east4"
-    '''
-    with open(docker_vars_path, "w") as f:
-        f.write(docker_yaml)
-
-# Start a Google Cloud VM Instance.
-
-
-def project_vm_start(project_path):
-
-    # The parent directory
-    project_path = Path(project_path)
-    project_mainfile = project_path/'main.tf'
-
-    if not project_mainfile.exists():
-        print(f"Error: '{project_mainfile}' does not exist.")
-        return
-
-    # Initializes Terraform
-    try:
-        print(f"Starting VM instance...\n")
-        subprocess.run(['terraform', 'init'], check=True)
-        print("Success!\n")
-
-    except subprocess.CalledProcessError as error:
-        print(f"Error: {error}")
-
-    # Plans Terraform
-    try:
-        print(f"Planning Terraform...\n")
-        subprocess.run(['terraform', 'plan'], check=True)
-        print("Success!\n")
-
-    except subprocess.CalledProcessError as error:
-        print(f"Error: {error}")
-
-    # Applies Terraform Configuration
-
-    try:
-        print(f"Applying Terraform Configuration...\n")
-        subprocess.run(['terraform', 'apply'], check=True)
-        print("Success!\n")
-
-    except subprocess.CalledProcessError as error:
-        print(f"Error: {error}")
-
-# Start a Google Cloud VM Instance.
-
-
-def project_vm_end():
-
-    # Destorys VM
-    try:
-        print(f"Ending VM instance...\n")
-        subprocess.run(['terraform', 'destroy'], check=True)
-        print("Success!\n")
-
-    except subprocess.CalledProcessError as error:
-        print(f"Error: {error}")
-
-
-# Pushes the specified image to the specified container registry
-# currently deadlocked on intel by our inability to access Intel API and SSH implementation
-
-def project_push(image_name):
-    # gcp_docker_auth()
-    subprocess.run(["docker", "tag", str(
-        image_name), f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
-
-    subprocess.run(
-        ["docker", "push", f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
-
 
 # UNIMPLEMENTED
 # Auth the user into a specified cloud service using the supported login method, supported
 # platforms include: ()
-
 
 def gcp_docker_auth():
     docker_login_command = ['docker', 'login', '-u', '_json_key',
@@ -288,6 +44,9 @@ def gcp_docker_auth():
 
 
 # Loads a dataset into the data container
+# Inputs:
+# - location_type:
+# - location: 
 
 def project_datapull(location_type, location):
 
@@ -358,54 +117,41 @@ def cli_entry_point():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
 
-    parser_ping = subparsers.add_parser('ping', help='Ping intel site')
-
-    parser_print = subparsers.add_parser('print', help='Print help message')
-
     parser_info = subparsers.add_parser('info', help='Get VM package info')
 
-    # Initialize a project directory
+    # Initialize a project directory Command
 
-    parser_init = subparsers.add_parser('init', help='Create Cynthus project')
+    parser_init = subparsers.add_parser(
+        'init', help='Create Cynthus project')
     parser_init.add_argument(
-        'project_name',
-        help='The name of the project to create'
-    )
+        'project_name', help='The name of the project to create')
 
     # Command to prepare the components of a parent directory
 
     parser_prepare = subparsers.add_parser(
         'prepare', help='Prepare and push a project directory to the GCP')
     parser_prepare.add_argument(
-        'project_path',
-        help='The path to the project directory to prepare'
-    )
+        'project_path', help='The path to the project directory to prepare')
 
-    # Start a VM instance
-    # Currently set up for Google Cloud
+    # Start a VM instance Command
 
     parser_VM_start = subparsers.add_parser(
         'VM_start', help='Start a VM instance')
     parser_VM_start.add_argument(
-        'project_path',
-        help='The path to the terraform main.tf file to start the VM'
-    )
+        'project_path', help='The path to the terraform main.tf file to start the VM')
 
-    # End VM instance
-    # Currently set up for Google Cloud
+    # End VM instance Command 
 
     parser_VM_end = subparsers.add_parser('VM_end', help='End VM instance')
+
+    # Push images to cloud registry Command
 
     # parser_push = subparsers.add_parser(
     #     'push', help='Push a specified image to a specified cloud registry')
     # parser_push.add_argument(
-    #     'image_path',
-    #     help='The image to prepare'
-    # )
+    #     'image_path', help='The image to prepare')
     # parser_push.add_argument(
-    #     'registry',
-    #     help='The name of the registry'
-    # )
+    #     'registry', help='The name of the registry')
 
     parser_auth = subparsers.add_parser(
         'ssh', help='Authenticate into a specified cloud registry')
@@ -429,6 +175,10 @@ def cli_entry_point():
         help='The local path or url to pull data from'
     )
 
+    parser_setup_kaggle = subparsers.add_parser(
+        'setup-kaggle', help='Provide instructions for Kaggle set-up'
+    )
+
     parser_download_kaggle = subparsers.add_parser(
         'download-kaggle', help='Download dataset from Kaggle'
     )
@@ -447,11 +197,7 @@ def cli_entry_point():
 
     args = parser.parse_args()
 
-    if args.command == 'ping':
-        ping_intel()
-    elif args.command == 'upload':
-        model_upload()
-    elif args.command == 'info':
+    if args.command == 'info':
         give_info()
     elif args.command == 'init':
         init_project(args.project_name)
@@ -467,7 +213,7 @@ def cli_entry_point():
     #     project_ssh(args.ssh_key, args.service)
     elif args.command == 'datapull':
         project_datapull(args.location_type, args.location)
-    elif args.command == 'setup_kaggle':
+    elif args.command == 'setup-kaggle':
         setup_kaggle()
     elif args.command == 'download-kaggle':
         download_kaggle_dataset(args.dataset, args.dest_path)
