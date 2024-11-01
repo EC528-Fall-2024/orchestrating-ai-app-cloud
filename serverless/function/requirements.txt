@@ -1,0 +1,5 @@
+numpy
+tensorflow
+functions-framework
+google-cloud-storage
+python-dotenv
