@@ -19,13 +19,6 @@ data "template_file" "cloud_init" {
   }
 }
 
-resource "google_compute_disk" "data" {
-  name = "disk-data"
-  type = "pd-standard"
-  zone = var.zone
-  size = "10" # GB
-}
-
 resource "google_compute_instance" "default" {
   name         = "cynthus-compute-instance-${random_id.rid.dec}"
   machine_type = "e2-medium"
@@ -34,11 +27,8 @@ resource "google_compute_instance" "default" {
   boot_disk {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2204-lts"
+      size = 100 # Size in GB
     }
-  }
-  attached_disk {
-    source      = google_compute_disk.data.id
-    device_name = google_compute_disk.data.name
   }
 
   network_interface {
