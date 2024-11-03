@@ -6,23 +6,31 @@ import tempfile
 import json
 from cloud_init_gen import CloudInitGenerator
 from secret_manager import SecretManager
+from terraform_configs import MAIN_TF, VARIABLES_TF
 
 def setup_terraform_environment(tmp_dir):
-    """Download and setup Terraform files from GCS"""
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(os.environ.get('TERRAFORM_BUCKET'))
+    """Create Terraform files in temporary directory"""
+    print(f"Temporary directory path: {tmp_dir}")
+    print(f"Contents of tmp_dir before creating files: {os.listdir(tmp_dir)}")
     
-    # Download Terraform files
-    terraform_files = ['main.tf', 'variables.tf', 'terraform.tfvars']
-    for file in terraform_files:
-        blob = bucket.blob(f'terraform/{file}')
-        local_path = os.path.join(tmp_dir, file)
-        blob.download_to_filename(local_path)
+    main_tf_path = os.path.join(tmp_dir, 'main.tf')
+    variables_tf_path = os.path.join(tmp_dir, 'variables.tf')
     
-    # Initialize Terraform
+    print(f"Writing main.tf to: {main_tf_path}")
+    with open(main_tf_path, 'w') as f:
+        f.write(MAIN_TF)
+    
+    print(f"Writing variables.tf to: {variables_tf_path}")
+    with open(variables_tf_path, 'w') as f:
+        f.write(VARIABLES_TF)
+    
+    print(f"Contents of tmp_dir after creating files: {os.listdir(tmp_dir)}")
+    
+    # Check if terraform executable exists in PATH
+    result = subprocess.run(['which', 'terraform'], capture_output=True, text=True)
+    print(f"Terraform executable location: {result.stdout if result.returncode == 0 else 'Not found'}")
+    
     subprocess.run(['terraform', 'init'], cwd=tmp_dir, check=True)
-
-@functions_framework.http
 
 def generate_tfvars(tmp_dir, cloud_init_config, instance_name, request_json=None):
     """Generate terraform.tfvars.json file with VM configuration"""
@@ -60,42 +68,41 @@ def generate_tfvars(tmp_dir, cloud_init_config, instance_name, request_json=None
     tfvars_path = os.path.join(tmp_dir, 'terraform.tfvars.json')
     with open(tfvars_path, 'w') as f:
         json.dump(tfvars_content, f, indent=2)
-        
+
+
+
+@functions_framework.http      
 def get_environment_config(): ### TEMPORARY SOLUTION
     """Get environment variables from .env file"""
     secret_manager = SecretManager()
     return secret_manager.get_all_secrets()
+
 def create_vm(request):
     try:
-        # Parse request
         request_json = request.get_json(silent=True)
         if not request_json:
             return {'error': 'No JSON data received'}, 400
 
-        # Load environment variables
         env_vars = get_environment_config()
-
-        if not env_vars['SSH_PUBLIC_KEY']:
-            return {'error': 'SSH_PUBLIC_KEY not found in environment'}, 500
-
-        # Initialize cloud-init generator
-        cloud_init_gen = CloudInitGenerator(env_vars['BUCKET_NAME'])
         
-        # Generate cloud-init config
-        cloud_init = cloud_init_gen.generate_yaml(env_vars['SSH_PUBLIC_KEY'])
-
-        # Create temporary directory for Terraform files
+        # Initialize CloudInitGenerator with your GCS bucket name
+        cloud_init_gen = CloudInitGenerator(env_vars['REQUIREMENTS_BUCKET'])
+        
+        # Generate cloud-init config using SSH key from env vars
+        cloud_init_yaml = cloud_init_gen.generate_cloud_init_yaml(env_vars['SSH_PUBLIC_KEY'])
+        
         with tempfile.TemporaryDirectory() as tmp_dir:
-            # Setup Terraform environment
-            setup_terraform_environment(tmp_dir)
+            # Save cloud-init config to Terraform directory
+            cloud_init_path = os.path.join(tmp_dir, 'cloud-init-config.yaml')
+            with open(cloud_init_path, 'w') as f:
+                f.write(cloud_init_yaml)
             
-            # Generate instance name
+            setup_terraform_environment(tmp_dir)
             instance_name = f"cynthus-compute-instance-{os.urandom(4).hex()}"
             
-            # Generate tfvars
-            generate_tfvars(tmp_dir, cloud_init, instance_name)
+            # Pass cloud_init_path to generate_tfvars
+            generate_tfvars(tmp_dir, cloud_init_path, instance_name, request_json)
             
-            # Run Terraform apply
             result = subprocess.run(
                 ['terraform', 'apply', '-auto-approve'],
                 cwd=tmp_dir,
@@ -113,8 +120,6 @@ def create_vm(request):
                 'message': f'VM creation initiated: {instance_name}',
                 'terraform_output': result.stdout
             }, 200
-            
+
     except Exception as e:
         return {'error': str(e)}, 500
-    
-    
