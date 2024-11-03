@@ -1,7 +1,7 @@
 from google.cloud import storage
 import uuid
+
 # log into gcp: gcloud auth application-default login
-#
 
 def create_bucket_hierarchical_namespace(bucket_name):
     """Creates a bucket with hierarchical namespace enabled."""
