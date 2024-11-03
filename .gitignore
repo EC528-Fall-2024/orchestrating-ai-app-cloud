@@ -17,5 +17,5 @@ terraform_gcp/terraform.exe
 .env
 # Credentials file
 credentials.json
-key.json
-cloud-function-key.json
+serverless/function/key.json
+serverless/function/cloud-function-key.json
