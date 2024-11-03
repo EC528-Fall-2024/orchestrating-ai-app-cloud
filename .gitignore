@@ -18,4 +18,4 @@ terraform_gcp/terraform.exe
 # Credentials file
 credentials.json
 key.json
-
+cloud-function-key.json
