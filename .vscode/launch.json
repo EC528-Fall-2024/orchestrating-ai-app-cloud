@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/guzhaowen/Documents/BU/2024Fall/EC440/project3",
+      "program": "/Users/guzhaowen/Documents/BU/2024Fall/EC440/project3/build/Debug/outDebug"
+    }
+  ]
+}

@@ -1,10 +1,22 @@
 import argparse
 from pathlib import Path
 import requests
-import subprocess
 import os
-import kaggle
+import subprocess
+import shutil
+from datasets import load_dataset
+# import kaggle
 from datasets import load_dataset_builder
+# from ...ansible_main.cloud_init import cloud_init_gen
+
+# Declared globally at the top so it can be easily modified
+cred_path = Path(__file__).parent.parent.parent / 'creds'
+# requirements_path =
+# output_path =
+docker_vars_path = Path(__file__).parent.parent.parent / \
+    'ansible_main' / 'ansible_control' / 'vars.yml'
+requirements_path = Path(__file__).parent.parent.parent / \
+    'ansible_main' / 'cloud_init' / 'requirements.txt'
 
 
 def ping_intel():
@@ -26,6 +38,7 @@ def ping_intel():
         print('Error:', e)
         return None
 
+
 def setup_kaggle():
     """
     Provides instructions to the user on how to generate and set up the Kaggle API key.
@@ -42,6 +55,7 @@ def setup_kaggle():
     print("   chmod 600 ~/.kaggle/kaggle.json")
     print("You are now set up to use the Kaggle API!")
 
+
 def download_kaggle_dataset(dataset, dest_path):
     """
     Download Kaggle dataset and print metadata like size.
@@ -57,7 +71,7 @@ def download_kaggle_dataset(dataset, dest_path):
         if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
             print("Kaggle API key is not set. Please set it up.")
             return
-        
+
         # Download dataset
         kaggle.api.dataset_download_files(dataset, path=dest_path, unzip=True)
 
@@ -76,8 +90,8 @@ def download_kaggle_dataset(dataset, dest_path):
         print(f"Error downloading dataset: {e}")
 
 
-def handle_print():
-    print('For more info, type -h or --help.')
+def model_upload():
+    print('Provide the link to the model you wish to upload: ')
 
 
 def give_info():
@@ -99,97 +113,258 @@ def init_project(project_name):
         (new_directory_path / 'config').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'data').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'src').mkdir(parents=True, exist_ok=True)
+        (new_directory_path / 'terraform').mkdir(parents=True, exist_ok=True)
+        (new_directory_path / '.kaggle').mkdir(parents=True, exist_ok=True)
+        print("Directories successfully created!")
     except Exception as error:
         print(f"Error creating project: {error}")
 
-# Containerize the project within the directory and build its image
-# creating a Dockerfile if one does not exist already, the Dockerfile
+# Prepare the data and src directories within the parent directory and build their images
+# creating a Dockerfile for each if one does not exist already, the Dockerfile
 # is currenlty very hardcoded and will need to either be made dynamic
 # or handled elsewhere (Ansible) later
 
 
-def containerize_project(project_path):
+def prepare_project(project_path):
+
+    # The parent directory
     project_path = Path(project_path)
 
     if not project_path.is_dir():
         print(f"Error: '{project_path}' is not a valid directory")
         return
 
-    dockerfile_path = project_path / 'Dockerfile'
-    if not dockerfile_path.exists():
-        with open(dockerfile_path, 'w') as f:
-            f.write(f"FROM python:3.9\n")
-            f.write(f"WORKDIR /src\n")
-            f.write(f"COPY src/ .\n")
+    project_path_data = project_path / 'data'
+    project_path_src = project_path / 'src'
 
-            # Removed the following because we might want to do installation through
-            # Ansible and because I don't know how to dynamically locate the main
-            # Python file from the user yet
+    if project_path_src.is_dir():
+        try:
+            subprocess.run(['pipreqs', str(project_path_src),
+                           '--savepath', str(requirements_path)], check=True)
+        except subprocess.CalledProcessError as error:
+            print(f"Error generating requirements.txt: {error}")
+    else:
+        print(f"Error: '{project_path_src}' directory does not exist")
 
-            # f.write(f"RUN pip install -r requirements.txt\n")
-            # f.write(f"CMD ['python', 'NAME_OF_CODE.py']")
+    # Creates Data Dockerfile
+    dockerfile_path_data = project_path_data / 'Dockerfile'
+
+    if not dockerfile_path_data.exists():
+        with open(dockerfile_path_data, 'w') as f:
+            f.write("FROM alpine:latest\n")
 
     try:
-        image_name = project_path.name
-        print(f"building Docker image '{image_name}'...")
-        subprocess.run(['docker', 'build', '-t', image_name,
-                       str(project_path)], check=True)
-        print(f"image '{image_name}' built successfully")
+        image_name_data = project_path_data.name
+        print(f"building Docker image '{image_name_data}'...")
+        subprocess.run(['docker', 'build', '-t', image_name_data,
+                       str(project_path_data)], check=True)
+        print(f"image '{image_name_data}' built successfully")
+        project_push(image_name_data)
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+    # Creates Src Dockerfile
+    dockerfile_path_src = project_path_src / 'Dockerfile'
+
+    if not dockerfile_path_src.exists():
+        with open(dockerfile_path_src, 'w') as f:
+            f.write("FROM alpine:latest\n")
+
+    try:
+        image_name_src = project_path_src.name
+        print(f"building Docker image '{image_name_src}'...")
+        subprocess.run(['docker', 'build', '-t', image_name_src,
+                       str(project_path_src)], check=True)
+        print(f"image '{image_name_src}' built successfully")
+        project_push(image_name_src)
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+    docker_yaml_create(image_name_src, image_name_data)
+
+    # cloud_init_gen.generate_cloud_init_yaml(requirements_path, output_path, image_name_src, image_name_data)
+
+
+def docker_yaml_create(image_name_src="src", image_name_data="data"):
+    docker_yaml = f'''# vars.yml
+    artifact_src: "/home/control/cynthus/orchestrating-ai-app-cloud/ansible_main/ansible_control/artifact-reader.json"
+    artifact_dest: "/tmp/artifact-reader.json"
+    docker_image_name_src: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_src}"
+    docker_image_name_data: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_data}"
+    docker_image_tag: "latest"
+    gcp_repo_location: "us-east4"
+    '''
+    with open(docker_vars_path, "w") as f:
+        f.write(docker_yaml)
+
+# Start a Google Cloud VM Instance.
+
+
+def project_vm_start(project_path):
+
+    # The parent directory
+    project_path = Path(project_path)
+    project_mainfile = project_path/'main.tf'
+
+    if not project_mainfile.exists():
+        print(f"Error: '{project_mainfile}' does not exist.")
+        return
+
+    # Initializes Terraform
+    try:
+        print(f"Starting VM instance...\n")
+        subprocess.run(['terraform', 'init'], check=True)
+        print("Success!\n")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+    # Plans Terraform
+    try:
+        print(f"Planning Terraform...\n")
+        subprocess.run(['terraform', 'plan'], check=True)
+        print("Success!\n")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+    # Applies Terraform Configuration
+
+    try:
+        print(f"Applying Terraform Configuration...\n")
+        subprocess.run(['terraform', 'apply'], check=True)
+        print("Success!\n")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Error: {error}")
+
+# Start a Google Cloud VM Instance.
+
+
+def project_vm_end():
+
+    # Destorys VM
+    try:
+        print(f"Ending VM instance...\n")
+        subprocess.run(['terraform', 'destroy'], check=True)
+        print("Success!\n")
 
     except subprocess.CalledProcessError as error:
         print(f"Error: {error}")
 
 
-# UNIMPLEMENTED
 # Pushes the specified image to the specified container registry
-# currently deadlocked by our inability to access Intel API and SSH implementation
+# currently deadlocked on intel by our inability to access Intel API and SSH implementation
 
+def project_push(image_name):
+    # gcp_docker_auth()
+    subprocess.run(["docker", "tag", str(
+        image_name), f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
 
-def project_push(image_path, registry):
-    pass
-    # docker_registry = "REGISTRY_HERE"
-    # subprocess.run(['docker', 'push', f'{docker_registry}/{image_name}'], check=True)
-    # print(f"image successfully pushed to '{docker_registry}'")
+    subprocess.run(
+        ["docker", "push", f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
 
-    # except subprocess.CalledProcessError as error:
-    #     print(f"Error: {error}")
 
 # UNIMPLEMENTED
-# SSH the user into a specified cloud service using their public SSH key, supported
+# Auth the user into a specified cloud service using the supported login method, supported
 # platforms include: ()
 
 
-def project_ssh(ssh_key, service):
-    pass
+def gcp_docker_auth():
+    docker_login_command = ['docker', 'login', '-u', '_json_key',
+                            '--password-stdin', 'https://us-east4-docker.pkg.dev']
+    if os.name == 'nt':  # Windows
+        command = "Get-Content cynthusgcp-registry.json"
+        ps_command = ['powershell', '-Command', command]
+        with subprocess.Popen(ps_command, cwd=cred_path, stdout=subprocess.PIPE) as ps_proc:
+            subprocess.run(docker_login_command, stdin=ps_proc.stdout)
+
+    else:  # (Linux/Mac)
+        cat_command = ['cat', 'cynthusgcp-registry.json']
+        with subprocess.Popen(cat_command, cwd=cred_path, stdout=subprocess.PIPE) as cat_proc:
+            subprocess.run(docker_login_command, stdin=cat_proc.stdout)
 
 
-# UNIMPLEMENTED
-# Pulls data from a public data store and into a specified target cloud container
-# For now, returns dataset size to test API calls
+# Loads a dataset into the data container
 
+def project_datapull(location_type, location):
 
-def project_datapull(url, target):
-    if "huggingface.co" in url:
-        hf_key = url.split("datasets/", 1)
-        builder = load_dataset_builder(hf_key)
-        print("Found dataset of size " + builder.info.download_size)
-        '''
-        import s3fs
-        storage_options = {}
-        fs = s3fs.S3FileSystem(**storage_options)
-        builder.download_and_prepare(output_dir, storage_options=storage_options, file_format="parquet")
-        '''
+    # Path declarations
+    project_path = Path(project_path)
+    if not project_path.is_dir():
+        print(f"Error: '{project_path}' is not a valid directory")
+        return
+    project_path_data = project_path / 'data'
+
+    # Local datasets
+    if location_type == "local_path":
+        try:
+            shutil.move(location, project_path_data)
+            print("All files moved successfully.")
+        except shutil.Error as e:
+            print("Error moving files:", e)
+        except Exception as e:
+            print("Unexpected error:", e)
+
+    # Public datasets
+    elif location_type == 'url':
+        key = location.split("datasets/", 1)
+
+        # Kaggle datasets
+        if "kaggle.com" in location:
+            try:
+                # Check if Kaggle API key is set
+                if not os.path.exists(os.path.expanduser("~/.kaggle/kaggle.json")):
+                    print("Kaggle API key is not set. Please set it up.")
+                    return
+
+                # Download dataset
+                kaggle.api.dataset_download_files(
+                    key, path=project_path_data, unzip=True)
+            except Exception as error:
+                print(f"Error downloading Kaggle dataset: {error}")
+
+        # Hugging Face datasets
+        elif "huggingface.co" in location:
+            try:
+                dataset = load_dataset(key)
+                dataset.save_to_disk(project_path_data)
+            except Exception as error:
+                print(f"Error downloading Hugging Face dataset: {error}")
+
+    # Argument errors
+    else:
+        print(f"Error: '{type}' is not a valid type")
+        return
+
+    # Calculate dataset size
+    try:
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(project_path_data):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+
+        total_size_mb = total_size / (1024 * 1024)
+        print(f"Dataset '{key}' downloaded to '{project_path_data}'")
+        print(f"Total size: {total_size_mb:.2f} MB")
+    except Exception as error:
+        print(f"Error calculating dataset size: {error}")
 
 
 def cli_entry_point():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
 
-    parser_request = subparsers.add_parser('ping', help='Ping intel site')
+    parser_ping = subparsers.add_parser('ping', help='Ping intel site')
 
     parser_print = subparsers.add_parser('print', help='Print help message')
 
     parser_info = subparsers.add_parser('info', help='Get VM package info')
+
+    # Initialize a project directory
 
     parser_init = subparsers.add_parser('init', help='Create Cynthus project')
     parser_init.add_argument(
@@ -197,48 +372,65 @@ def cli_entry_point():
         help='The name of the project to create'
     )
 
-    parser_containerize = subparsers.add_parser(
-        'containerize', help='Containerize a project directory')
-    parser_containerize.add_argument(
+    # Command to prepare the components of a parent directory
+
+    parser_prepare = subparsers.add_parser(
+        'prepare', help='Prepare and push a project directory to the GCP')
+    parser_prepare.add_argument(
         'project_path',
-        help='The path to the project directory to containerize'
+        help='The path to the project directory to prepare'
     )
 
-    parser_push = subparsers.add_parser(
-        'push', help='Push a specified image to a specified cloud registry')
-    parser_push.add_argument(
-        'image_path',
-        help='The image to containerize'
-    )
-    parser_push.add_argument(
-        'registry',
-        help='The name of the registry'
+    # Start a VM instance
+    # Currently set up for Google Cloud
+
+    parser_VM_start = subparsers.add_parser(
+        'VM_start', help='Start a VM instance')
+    parser_VM_start.add_argument(
+        'project_path',
+        help='The path to the terraform main.tf file to start the VM'
     )
 
-    parser_ssh = subparsers.add_parser(
-        'ssh', help='SSH into a specified cloud registry')
-    parser_ssh.add_argument(
+    # End VM instance
+    # Currently set up for Google Cloud
+
+    parser_VM_end = subparsers.add_parser('VM_end', help='End VM instance')
+
+    # parser_push = subparsers.add_parser(
+    #     'push', help='Push a specified image to a specified cloud registry')
+    # parser_push.add_argument(
+    #     'image_path',
+    #     help='The image to prepare'
+    # )
+    # parser_push.add_argument(
+    #     'registry',
+    #     help='The name of the registry'
+    # )
+
+    parser_auth = subparsers.add_parser(
+        'ssh', help='Authenticate into a specified cloud registry')
+    parser_auth.add_argument(
         'ssh_key',
         help='The public key of the user'
     )
-    parser_ssh.add_argument(
+    parser_auth.add_argument(
         'service',
-        help='The cloud service to SSH into'
+        help='The cloud service to authenticate into'
     )
 
     parser_datapull = subparsers.add_parser(
-        'datapull', help='Pull data from a target supported url into a VM')
+        'datapull', help='Source a dataset from a local path or supported API')
     parser_datapull.add_argument(
-        'url',
-        help='The url to be pulled from, supports HuggingFace and Kaggle'
+        'location_type',
+        help='local_path or url'
     )
     parser_datapull.add_argument(
-        'target',
-        help='The target to send the data'
+        'location',
+        help='The local path or url to pull data from'
     )
 
     parser_download_kaggle = subparsers.add_parser(
-    'download-kaggle', help='Download dataset from Kaggle'
+        'download-kaggle', help='Download dataset from Kaggle'
     )
     parser_download_kaggle.add_argument(
         'dataset', help='The Kaggle dataset to download (e.g., username/dataset-name)'
@@ -247,27 +439,41 @@ def cli_entry_point():
         'dest_path', help='The local directory where the dataset will be downloaded'
     )
 
+    parser_gcp_docker_auth = subparsers.add_parser(
+        'gcp-docker-auth', help='Authenticate to GCP Artifact Registry (test command)')
+
+    parser_docker_yaml_create = subparsers.add_parser(
+        'docker-yaml-create', help='Create sample yaml file (test command)')
+
     args = parser.parse_args()
 
     if args.command == 'ping':
         ping_intel()
-    elif args.command == 'print':
-        handle_print()
+    elif args.command == 'upload':
+        model_upload()
     elif args.command == 'info':
         give_info()
     elif args.command == 'init':
         init_project(args.project_name)
-    elif args.command == 'containerize':
-        containerize_project(args.project_path)
-    elif args.command == 'push':
-        project_push(args.image_path, args.registry)
-    elif args.command == 'ssh':
-        project_ssh(args.ssh_key, args.service)
+    elif args.command == 'VM_start':
+        project_vm_start(args.project_path)
+    elif args.command == 'VM_end':
+        project_vm_end()
+    elif args.command == 'prepare':
+        prepare_project(args.project_path)
+    # elif args.command == 'push':
+    #     project_push(args.image_path, args.registry)
+    # elif args.command == 'ssh':
+    #     project_ssh(args.ssh_key, args.service)
     elif args.command == 'datapull':
-        project_datapull(args.url, args.target)
+        project_datapull(args.location_type, args.location)
     elif args.command == 'setup_kaggle':
         setup_kaggle()
     elif args.command == 'download-kaggle':
         download_kaggle_dataset(args.dataset, args.dest_path)
+    elif args.command == 'gcp-docker-auth':
+        gcp_docker_auth()
+    elif args.command == 'docker-yaml-create':
+        docker_yaml_create()
     else:
         parser.print_help()

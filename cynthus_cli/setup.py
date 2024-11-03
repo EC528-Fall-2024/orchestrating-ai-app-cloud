@@ -13,8 +13,8 @@ setup(
     },
     install_requires=[
         'requests',
-        'kaggle',
-        "os"
+        'kaggle'
+        
 
     ],
 )
