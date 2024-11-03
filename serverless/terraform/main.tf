@@ -8,61 +8,42 @@ provider "google" {
   zone    = var.zone
 }
 
-data "template_file" "dockerfile" {
-  template = file("/terraform/Dockerfile")
-}
-
-data "template_file" "cloud_init" {
-  template = file("/terraform/cloud-init-config.yaml")
-  vars = {
-    ssh_public_key = var.ssh_public_key
-  }
-}
-
 resource "google_compute_instance" "default" {
-  name         = "cynthus-compute-instance-${random_id.rid.dec}"
-  machine_type = "e2-medium"
+  name         = var.instance_name
+  machine_type = var.machine_type
   zone         = var.zone
 
+  metadata = {
+    user-data = file(var.cloud_init_config)
+  }
   boot_disk {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2204-lts"
-      size = 100 # Size in GB
+      size  = var.disk_size
     }
   }
 
   network_interface {
-    network = "default"
-    access_config {
-      // Ephemeral public IP
-    }
+    network = var.network
+    access_config {}
   }
 
-  metadata = {
-    user-data = data.template_file.cloud_init.rendered
-    dockerfile = data.template_file.dockerfile.rendered
-  }
-
-  labels = {
-    role        = "managed"
-    environment = "development"
-  }
-
-  tags = ["cynthus-compute-instance-${random_id.rid.dec}", "http-server", "https-server", "ssh-server"]
+  labels = var.labels
+  tags   = var.tags
 }
 
 resource "google_compute_firewall" "rules" {
   project     = var.project_id
-  name        = "cynthus-compute-instance-${random_id.rid.dec}"
-  network     = "default"
-  description = "Allows access to OPEA AI ChatQnA"
+  name        = var.instance_name
+  network     = var.network
+  description = "Allows access to services"
 
   allow {
     protocol = "tcp"
-    ports    = ["80", "443", "6379", "8001", "6006", "6007", "6000", "7000", "8808", "8000", "8888", "5173", "5174", "9009", "9000"]
+    ports    = var.firewall_ports
   }
   source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["cynthus-compute-instance-${random_id.rid.dec}"]
+  target_tags   = var.tags
 }
 
 output "instance_ip" {

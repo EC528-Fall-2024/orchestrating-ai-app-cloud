@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 class SecretManager:
     def __init__(self):
         # Load .env file if it exists
-        env_path = Path(__file__).parent.parent / '.env'
+        env_path = Path(__file__).parent / '.env'
         load_dotenv(env_path)
 
     def get_secret(self, key: str, default: str = None) -> str:
@@ -21,6 +21,5 @@ class SecretManager:
             'SSH_PUBLIC_KEY': self.get_secret('SSH_PUBLIC_KEY'),
             'PROJECT_ID': self.get_secret('PROJECT_ID'),
             'ZONE': self.get_secret('ZONE'),
-            'BUCKET_NAME': self.get_secret('BUCKET_NAME'),
-            'TERRAFORM_BUCKET': self.get_secret('TERRAFORM_BUCKET')
+            'REQUIREMENTS_BUCKET': self.get_secret('REQUIREMENTS_BUCKET')
         }

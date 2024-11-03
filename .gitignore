@@ -13,7 +13,45 @@ override.tf.json
 .terraformrc
 terraform.rc
 terraform_gcp/terraform.exe
+
 # Environment variables file
 .env
-# Credentials file
+.env.*
+*.env
+
+# Credentials and keys
 credentials.json
+**/key.json
+**/*-key.json
+*.pem
+*.key
+serverless/function/key.json
+serverless/function/cloud-function-key.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
