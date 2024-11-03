@@ -17,3 +17,5 @@ terraform_gcp/terraform.exe
 .env
 # Credentials file
 credentials.json
+key.json
+
