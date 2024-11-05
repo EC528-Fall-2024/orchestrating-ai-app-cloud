@@ -122,6 +122,10 @@ def project_datapull(location_type, location):
 
 
 def cli_entry_point():
+    
+    # From Firebase.py
+    check_authentication()
+
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
 
@@ -154,8 +158,6 @@ def cli_entry_point():
 
     parser_VM_start = subparsers.add_parser(
         'VM_start', help='Start a VM instance')
-    parser_VM_start.add_argument(
-        'project_path', help='The path to the terraform main.tf file to start the VM')
 
     # End VM instance Command 
 
@@ -233,7 +235,7 @@ def cli_entry_point():
     elif args.command == 'init':
         init_project(args.project_name)
     elif args.command == 'VM_start':
-        project_vm_start(args.project_path)
+        project_vm_start()
     elif args.command == 'VM_end':
         project_vm_end()
     elif args.command == 'prepare':
