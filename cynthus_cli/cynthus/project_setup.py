@@ -35,10 +35,9 @@ def init_project(project_name):
 
     try:
         new_directory_path.mkdir(parents=True, exist_ok=True)
-        (new_directory_path / 'config').mkdir(parents=True, exist_ok=True)
+        create_config(new_directory_path)
         (new_directory_path / 'data').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'src').mkdir(parents=True, exist_ok=True)
-        (new_directory_path / 'terraform').mkdir(parents=True, exist_ok=True)
         print("Directories successfully created!")
     except Exception as error:
         print(f"Error creating project: {error}")
@@ -86,9 +85,6 @@ def prepare_project(src_path, data_path=None, tar_data=False):
         print(f"Error: '{src_path}' is not a valid directory")
         return
     
-    # Create config file
-    create_config(src_path)
-
     # Generate and save requirements.txt
     requirements_path = src_path / 'requirements.txt'
     try:
