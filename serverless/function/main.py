@@ -37,6 +37,7 @@ def generate_tfvars(tmp_dir, cloud_init_config, instance_name, request_json=None
     # Get configuration from request or use defaults
     machine_type = request_json.get('machine_type', 'e2-medium')
     disk_size = request_json.get('disk_size', 100)
+    user_id = request_json.get('user_id', 'unknown')
 
     tfvars_content = {
         'instance_name': instance_name,
@@ -49,10 +50,13 @@ def generate_tfvars(tmp_dir, cloud_init_config, instance_name, request_json=None
         'labels': {
             'role': 'managed',
             'environment': 'development',
+            'user_id': user_id,
+            'associated_bucket': f"user-{user_id}",
             'created_by': 'cloud_function'  # Example additional label
         },
         'tags': [
             instance_name,
+            f"user-{user_id}",
             'http-server',
             'https-server',
             'ssh-server'
@@ -80,6 +84,7 @@ def get_environment_config(): ### TEMPORARY SOLUTION
 def create_vm(request):
     try:
         request_json = request.get_json(silent=True)
+        print(f"Received request JSON: {request_json}")
         if not request_json:
             return {'error': 'No JSON data received'}, 400
 
@@ -98,7 +103,7 @@ def create_vm(request):
                 f.write(cloud_init_yaml)
             
             setup_terraform_environment(tmp_dir)
-            instance_name = f"cynthus-compute-instance-{os.urandom(4).hex()}"
+            instance_name = f"cynthus-compute-instance-{request_json['user_id']}"
             
             # Pass cloud_init_path to generate_tfvars
             generate_tfvars(tmp_dir, cloud_init_path, instance_name, request_json)

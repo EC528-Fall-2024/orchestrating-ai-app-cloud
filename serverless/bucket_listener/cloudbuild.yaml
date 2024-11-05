@@ -1,0 +1,17 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - gcloud
+      - functions
+      - deploy
+      - bucket-listener-VM
+      - --gen2
+      - --runtime=python310
+      - --region=us-central1
+      - --source=.
+      - --entry-point=handle_bucket_creation
+      - --trigger-event-filters=type=google.cloud.audit.log.v1.written
+      - --trigger-event-filters=serviceName=storage.googleapis.com
+      - --trigger-event-filters=methodName=storage.buckets.create
+      - --trigger-location=us-central1
+      - --service-account=bucket-listener@cynthusgcp-438617.iam.gserviceaccount.com

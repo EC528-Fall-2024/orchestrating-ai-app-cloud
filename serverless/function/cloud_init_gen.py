@@ -77,6 +77,9 @@ runcmd:
 - chown -R cynthus:cynthus /home/cynthus/venv 
 - echo "Python venv setup complete" > /home/cynthus/venv_setup_complete
 - chown cynthus:cynthus /home/cynthus/venv_setup_complete
+- mkdir -p /home/cynthus/workspace
+- gsutil -m cp -r gs://{self.bucket_name}/* /home/cynthus/workspace/
+- chown -R cynthus:cynthus /home/cynthus/workspace
 """
 
         print(f"Generated cloud-init YAML file")
