@@ -135,7 +135,9 @@ def cli_entry_point():
     parser_prepare = subparsers.add_parser(
         'prepare', help='Prepare and push a project directory to the GCP')
     parser_prepare.add_argument(
-        'project_path', help='The path to the project directory to prepare')
+        'src_path', help='The path to the src directory to prepare')
+    parser_prepare.add_argument(
+        'data_path', help='The path to the data directory to prepare')
 
     # Start a VM instance Command
 
@@ -212,7 +214,7 @@ def cli_entry_point():
     elif args.command == 'VM_end':
         project_vm_end()
     elif args.command == 'prepare':
-        prepare_project(args.project_path)
+        prepare_project(args.src_path, args.data_path)
     # elif args.command == 'push':
     #     project_push(args.image_path, args.registry)
     # elif args.command == 'ssh':
