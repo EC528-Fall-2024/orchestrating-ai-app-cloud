@@ -3,13 +3,16 @@ import requests
 import json
 from datetime import datetime, timedelta
 # It shouldn't actually matter if this key is public but just in case
-FIREBASE_API_KEY = "INSERT_KEY_HERE"
+FIREBASE_API_KEY = "AIzaSyA9YPNJUo9Z6OIxgACbSLB-VUQDaaXxdMQ"
 FIREBASE_SIGNIN_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
 FIREBASE_SIGNUP_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={FIREBASE_API_KEY}"
 TOKEN_FILE_PATH = "auth_token.json"
 
 
-def sign_up_user(email, password):
+def sign_up_user():
+    '''Signup the user to Firebase, should be executed at the very beginning to ensure login'''
+    email = input("Enter your email: ")
+    password = input("Enter your password: ")
     payload = {
         "email": email,
         "password": password,
@@ -32,6 +35,7 @@ def sign_up_user(email, password):
 
 
 def login_user(email, password):
+    '''Login the user to Firebase and store their auth_token'''
     payload = {
         "email": email,
         "password": password,
@@ -51,10 +55,9 @@ def login_user(email, password):
             f"Authentication error: {error.response.json().get('error', {}).get('message', 'Unknown error')}")
         raise
 
-# Store token and UID with an expiration time in a local file so user doesn't have to relog every time
-
 
 def store_token(id_token, uid, expires_in):
+    '''Store the user's token so they don't need to relog'''
     expiration_time = datetime.now() + timedelta(seconds=int(expires_in))
     token_data = {
         "id_token": id_token,
@@ -64,10 +67,9 @@ def store_token(id_token, uid, expires_in):
     with open(TOKEN_FILE_PATH, "w") as token_file:
         json.dump(token_data, token_file)
 
-# Load stored token if valid
-
 
 def load_token():
+    '''Load the token from the auth_token file'''
     if not os.path.exists(TOKEN_FILE_PATH):
         return None, None
 
@@ -83,6 +85,7 @@ def load_token():
 
 
 def check_authentication():
+    '''Check if a user is authenticated, to be used in cloud op commands'''
     token, uid = load_token()
     if token:
         print(f"Authenticated as UID: {uid}")
@@ -96,15 +99,3 @@ def check_authentication():
     except Exception as e:
         print("Login failed. Please try again.")
         raise
-
-
-# Main CLI functionality
-def main():
-    # Check if the user is authenticated, and get their UID if so
-    sign_up_user("hello1@example.com", "123456")
-    token, uid = check_authentication()
-    print(uid)
-
-
-if __name__ == "__main__":
-    main()
