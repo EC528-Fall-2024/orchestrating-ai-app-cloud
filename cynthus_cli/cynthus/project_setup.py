@@ -3,7 +3,7 @@
 
 # This section includes functions that help set-up a user project. The functions include:
 # - init_project(project_name)
-# - prepare_project(project_path)
+# - prepare_project(src_path, data_path)
 # - docker_yaml_create(image_name_src="src", image_name_data="data")
 # - project_push(image_name)
 

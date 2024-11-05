@@ -116,7 +116,7 @@ def project_datapull(location_type, location):
 
 
 def cli_entry_point():
-    firebase_auth.sign_up_user()
+    firebase_auth.check_authentication()
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
