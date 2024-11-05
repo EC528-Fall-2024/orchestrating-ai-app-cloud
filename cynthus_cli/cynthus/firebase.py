@@ -10,6 +10,10 @@ TOKEN_FILE_PATH = "auth_token.json"
 
 
 def sign_up_user(email, password):
+
+    # To test that CLI properly enters function
+    # print(f'User created successfully with email:{email} and password:{password}')
+
     payload = {
         "email": email,
         "password": password,
@@ -32,6 +36,10 @@ def sign_up_user(email, password):
 
 
 def login_user(email, password):
+
+    # To test that CLI can enter function
+    # print(f'User login successfully with email:{email} and password:{password}')
+
     payload = {
         "email": email,
         "password": password,
@@ -53,7 +61,6 @@ def login_user(email, password):
 
 # Store token and UID with an expiration time in a local file so user doesn't have to relog every time
 
-
 def store_token(id_token, uid, expires_in):
     expiration_time = datetime.now() + timedelta(seconds=int(expires_in))
     token_data = {
@@ -65,7 +72,6 @@ def store_token(id_token, uid, expires_in):
         json.dump(token_data, token_file)
 
 # Load stored token if valid
-
 
 def load_token():
     if not os.path.exists(TOKEN_FILE_PATH):
@@ -80,7 +86,6 @@ def load_token():
     else:
         print("Token expired. Please log in again.")
         return None, None
-
 
 def check_authentication():
     token, uid = load_token()

@@ -4,7 +4,6 @@ import requests
 import os
 import subprocess
 from google.cloud import storage
-from pathlib import Path
 
 import uuid
 import shutil
@@ -13,6 +12,7 @@ from datasets import load_dataset
 from .kaggle_funcs import *
 from .terraform_funcs import *
 from .project_setup import *
+from .firebase import *
 from datasets import load_dataset_builder
 # from ...ansible_main.cloud_init import cloud_init_gen
 
@@ -125,6 +125,17 @@ def cli_entry_point():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
 
+    # Sign up a user
+    
+    parser_signup = subparsers.add_parser(
+        'sign_up', help='Create an account')
+    
+    # Log in to established Cynthus account
+    
+    parser_login = subparsers.add_parser(
+        'login', help='Log in to Cynthus account')
+ 
+    # Get information regarding VM package (NOT FULLY IMPLEMENTED SO FAR)
     parser_info = subparsers.add_parser('info', help='Get VM package info')
 
     # Initialize a project directory Command
@@ -138,8 +149,6 @@ def cli_entry_point():
 
     parser_prepare = subparsers.add_parser(
         'prepare', help='Prepare and push a project directory to the GCP')
-    parser_prepare.add_argument(
-        'project_path', help='The path to the project directory to prepare')
 
     # Start a VM instance Command
 
@@ -207,7 +216,19 @@ def cli_entry_point():
 
     args = parser.parse_args()
 
-    if args.command == 'info':
+    if args.command == 'sign_up':
+        
+        email = input('Please provide the email you wish to use for this account:')
+        password = input('Create a password for this account:')
+        sign_up_user(email, password)
+
+    elif args.command == 'login':
+
+        email = input('Account Email:')
+        password = input('Password:')
+        login_user(email, password)
+
+    elif args.command == 'info':
         give_info()
     elif args.command == 'init':
         init_project(args.project_name)
@@ -216,7 +237,11 @@ def cli_entry_point():
     elif args.command == 'VM_end':
         project_vm_end()
     elif args.command == 'prepare':
-        prepare_project(args.project_path)
+
+        src = input('Please provide the folder location for you src files:')
+        data = input('please provide the folder location for your data files:')
+        prepare_project(src, data, tar_data=False)
+
     # elif args.command == 'push':
     #     project_push(args.image_path, args.registry)
     # elif args.command == 'ssh':

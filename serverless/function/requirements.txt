@@ -1,5 +1,5 @@
-numpy
-tensorflow
-functions-framework
 google-cloud-storage
 python-dotenv
+functions-framework
+pyyaml
+google-cloud-functions

@@ -3,7 +3,7 @@
 
 # This section includes functions that help set-up a user project. The functions include:
 # - init_project(project_name)
-# - prepare_project(project_path)
+# - prepare_project(src_path, data_path, tar_data=False)
 # - docker_yaml_create(image_name_src="src", image_name_data="data")
 # - project_push(image_name)
 
@@ -20,6 +20,7 @@ docker_vars_path = Path(__file__).parent.parent.parent / \
     'ansible_main' / 'ansible_control' / 'vars.yml'
 requirements_path = Path(__file__).parent.parent.parent / \
     'ansible_main' / 'cloud_init' / 'requirements.txt'
+
 
 # Initializes the project with the following directory strcuture
 # project |
