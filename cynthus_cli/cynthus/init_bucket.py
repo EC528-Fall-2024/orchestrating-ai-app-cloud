@@ -29,7 +29,7 @@ def create_bucket_class_location(bucket_name):
         return bucket
 
     # Set storage class and location, then create
-    bucket.storage_class = "COLDLINE"
+    bucket.storage_class = "STANDARD"
     new_bucket = storage_client.create_bucket(bucket, location="us")
 
     print(
