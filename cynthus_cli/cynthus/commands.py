@@ -135,7 +135,9 @@ def cli_entry_point():
     parser_prepare = subparsers.add_parser(
         'prepare', help='Prepare and push a project directory to the GCP')
     parser_prepare.add_argument(
-        'project_path', help='The path to the project directory to prepare')
+        'src_path', help='The path to the source code directory')
+    parser_prepare.add_argument(
+        '--data_path', help='Optional: The path to the data directory', default=None)
 
     # Start a VM instance Command
 
@@ -166,29 +168,6 @@ def cli_entry_point():
     parser_auth.add_argument(
         'service', help='The cloud service to authenticate into')
 
-    # Pull datasets for upload to buckets Command
-
-    parser_datapull = subparsers.add_parser(
-        'datapull', help='Source a dataset from a local path or supported API')
-    parser_datapull.add_argument(
-        'location_type', help='local_path or url')
-    parser_datapull.add_argument(
-        'location', help='The local path or url to pull data from')
-
-    # Set-up Kaggle Command
-
-    parser_setup_kaggle = subparsers.add_parser(
-        'setup-kaggle', help='Provide instructions for Kaggle set-up')
-
-    # Download Kaggle Dataset command (***May be removed***)
-
-    parser_download_kaggle = subparsers.add_parser(
-        'download-kaggle', help='Download dataset from Kaggle')
-    parser_download_kaggle.add_argument(
-        'dataset', help='The Kaggle dataset to download (e.g., username/dataset-name)')
-    parser_download_kaggle.add_argument(
-        'dest_path', help='The local directory where the dataset will be downloaded')
-
     # GCP Artifact Registry Authenication Command
 
     parser_gcp_docker_auth = subparsers.add_parser(
@@ -212,7 +191,7 @@ def cli_entry_point():
     elif args.command == 'VM_end':
         project_vm_end()
     elif args.command == 'prepare':
-        prepare_project(args.project_path)
+        prepare_project(args.src_path, args.data_paths)
     # elif args.command == 'push':
     #     project_push(args.image_path, args.registry)
     # elif args.command == 'ssh':
