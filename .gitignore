@@ -17,6 +17,7 @@ terraform_gcp/terraform.exe
 .env
 # Credentials file
 credentials.json
+auth_token.json
 
 bucket_logger/.DS_Store
 bucket_logger/.env.yaml

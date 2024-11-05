@@ -10,7 +10,7 @@
 #########################################################################################
 
 from pathlib import Path
-from .init_bucket import create_bucket_class_location,upload_blob
+from .init_bucket import create_bucket_class_location, upload_blob
 import subprocess
 import uuid
 
@@ -28,6 +28,7 @@ requirements_path = Path(__file__).parent.parent.parent / \
 #         - config
 #         - terraform
 #         - .kaggle
+
 
 def init_project(project_name):
     current_path = Path.cwd()
@@ -50,70 +51,85 @@ def init_project(project_name):
 # or handled elsewhere (Ansible) later
 
 
-def prepare_project(project_path):#generate docker image for data and src, upload to bucket_name
-    requirements_path = "/opt/anaconda3/lib/python3.12/ansible_main/cloud_init/requirements.txt"
+def prepare_project(src_path, data_path, tar_data=False):
     bucket_name = f"test-bucket-{uuid.uuid4()}"  # unique bucket name
-    project_path = Path(project_path)
-    
-    if not project_path.is_dir():
-        print(f"Error: '{project_path}' is not a valid directory")
+    src_path = Path(src_path)
+    data_path = Path(data_path)
+
+    # Validate paths
+    if not src_path.is_dir():
+        print(f"Error: '{src_path}' is not a valid directory")
+        return
+    if not data_path.is_dir():
+        print(f"Error: '{data_path}' is not a valid directory")
         return
 
-    # Paths for src and data directories
-    project_path_data = project_path / 'data'
-    project_path_src = project_path / 'src'
-    
-    # Generate requirements.txt
-    if project_path_src.is_dir():
+    # Path for requirements.txt in src directory
+    requirements_path = src_path / 'requirements.txt'
+
+    # Generate requirements.txt in src
+    try:
+        subprocess.run(
+            ['pipreqs', str(src_path), '--savepath', str(requirements_path)],
+            check=True
+        )
+        print(f"Requirements file saved at {requirements_path}")
+    except subprocess.CalledProcessError as error:
+        print(f"Error generating requirements.txt: {error}")
+        return
+
+    # Build Docker image in src
+    dockerfile_path = src_path / 'Dockerfile'
+    if not dockerfile_path.exists():
+        with open(dockerfile_path, 'w') as f:
+            f.write("FROM alpine:latest\n")
+
+    # Build Docker image
+    image_name = 'src'
+    try:
+        print(f"Building Docker image '{image_name}'...")
+        subprocess.run(['docker', 'build', '-t', image_name,
+                       str(src_path)], check=True)
+        print(f"Image '{image_name}' built successfully")
+    except subprocess.CalledProcessError as error:
+        print(f"Error building Docker image '{image_name}': {error}")
+        return
+
+    # Save Docker image as .tar file
+    tar_path = src_path / f"{image_name}.tar"
+    try:
+        print(f"Saving Docker image '{image_name}' as '{tar_path}'...")
+        subprocess.run(
+            ['docker', 'save', '-o', str(tar_path), image_name], check=True)
+        print(f"Image '{image_name}' saved as '{tar_path}'")
+    except subprocess.CalledProcessError as error:
+        print(f"Error saving Docker image '{image_name}': {error}")
+        return
+
+    # Upload src image and requirements.txt
+    create_bucket_class_location(bucket_name)
+    upload_blob(bucket_name, str(tar_path), f"docker-images/{image_name}.tar")
+    upload_blob(bucket_name, str(requirements_path),
+                "requirements/requirements.txt")
+
+    # Upload data
+    if tar_data:
+        data_tar_path = data_path.with_suffix('.tar')
         try:
-            subprocess.run(
-                ['pipreqs', str(project_path_src), '--savepath', str(requirements_path)],
-                check=True
-            )
-            print(f"Requirements file saved at {requirements_path}")
+            print(f"Tarring data directory to '{data_tar_path}'...")
+            subprocess.run(['tar', '-cf', str(data_tar_path), '-C',
+                           str(data_path.parent), data_path.name], check=True)
+            print(f"Data tar file '{data_tar_path}' created successfully")
+            upload_blob(bucket_name, str(data_tar_path), "data/data.tar")
         except subprocess.CalledProcessError as error:
-            print(f"Error generating requirements.txt: {error}")
+            print(f"Error creating tar file for data directory: {error}")
             return
     else:
-        print(f"Error: '{project_path_src}' directory does not exist")
-        return
-
-    # Build Docker images for data and src directories
-    for dir_name in ['data', 'src']:
-        dir_path = project_path / dir_name
-        dockerfile_path = dir_path / 'Dockerfile'
-        
-        # Ensure Dockerfile exists
-        if not dockerfile_path.exists():
-            with open(dockerfile_path, 'w') as f:
-                f.write("FROM alpine:latest\n")
-        
-        # Build Docker image
-        image_name = dir_name
-        try:
-            print(f"Building Docker image '{image_name}'...")
-            subprocess.run(['docker', 'build', '-t', image_name, str(dir_path)], check=True)
-            print(f"Image '{image_name}' built successfully")
-        except subprocess.CalledProcessError as error:
-            print(f"Error building Docker image '{image_name}': {error}")
-            return
-        
-        # Save Docker image as .tar file
-        tar_path = project_path / f"{image_name}.tar"
-        try:
-            print(f"Saving Docker image '{image_name}' as '{tar_path}'...")
-            subprocess.run(['docker', 'save', '-o', str(tar_path), image_name], check=True)
-            print(f"Image '{image_name}' saved as '{tar_path}'")
-        except subprocess.CalledProcessError as error:
-            print(f"Error saving Docker image '{image_name}': {error}")
-            return
-
-        create_bucket_class_location(bucket_name)
-        # Upload .tar file to GCS using upload_blob
-        upload_blob(bucket_name, str(tar_path), f"docker-images/{image_name}.tar")
-
-    # Upload requirements.txt to GCS
-    upload_blob(bucket_name, str(requirements_path), "requirements/requirements.txt")
+        # Upload each file individually
+        for file_path in data_path.rglob('*'):
+            if file_path.is_file():
+                blob_path = f"data/{file_path.relative_to(data_path)}"
+                upload_blob(bucket_name, str(file_path), blob_path)
 
 
 def docker_yaml_create(image_name_src="src", image_name_data="data"):
@@ -130,8 +146,9 @@ def docker_yaml_create(image_name_src="src", image_name_data="data"):
 
 # Pushes the specified image to the specified container registry
 # Inputs:
-# - 
+# -
 # currently deadlocked on intel by our inability to access Intel API and SSH implementation
+
 
 def project_push(image_name):
     # gcp_docker_auth()
@@ -140,13 +157,13 @@ def project_push(image_name):
 
     subprocess.run(
         ["docker", "push", f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
-    
+
 
 ##### Old project_prepare code; can remove later if necessary #####
 
 # def prepare_project(project_path):
 #     # create bucket using uuid
-#     bucket_name = f"test-bucket-{uuid.uuid4()}" 
+#     bucket_name = f"test-bucket-{uuid.uuid4()}"
 #     destination_blob_name_data = "dockerimages/data/Dockerfile"
 #     destination_blob_name_src = "dockerimages/src/Dockerfile"
 #     destination_blob_name_req = "dockerimages/src/requirements.txt"
