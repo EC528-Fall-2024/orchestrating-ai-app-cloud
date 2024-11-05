@@ -64,8 +64,8 @@ def prepare_project(src_path, data_path=None, tar_data=False):
         print("Authentication required. Please log in first.")
         return
 
-    # Create unique bucket name using Firebase UID
-    bucket_name = f"cynthus-{uid}-{uuid.uuid4().hex[:8]}"
+    # Create bucket name using new naming convention
+    bucket_name = f"user-bucket-{uid}"
     src_path = Path(src_path)
 
     # Validate src path
