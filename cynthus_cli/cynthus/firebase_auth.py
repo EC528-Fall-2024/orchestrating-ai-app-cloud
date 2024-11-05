@@ -3,7 +3,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 # It shouldn't actually matter if this key is public but just in case
-FIREBASE_API_KEY = "INSERT_KEY_HERE"
+FIREBASE_API_KEY = "AIzaSyA9YPNJUo9Z6OIxgACbSLB-VUQDaaXxdMQ"
 FIREBASE_SIGNIN_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
 FIREBASE_SIGNUP_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={FIREBASE_API_KEY}"
 TOKEN_FILE_PATH = "auth_token.json"
