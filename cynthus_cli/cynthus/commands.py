@@ -1,13 +1,11 @@
 import argparse
 from pathlib import Path
-import requests
 import os
 import subprocess
 from google.cloud import storage
 
 import uuid
 import shutil
-from .init_bucket import create_bucket_class_location,upload_blob
 from datasets import load_dataset
 from .kaggle_funcs import *
 from .terraform_funcs import *
@@ -54,7 +52,7 @@ def gcp_docker_auth():
 # Loads a dataset into the data container
 # Inputs:
 # - location_type:
-# - location: 
+# - location:
 
 def project_datapull(location_type, location):
 
@@ -159,7 +157,7 @@ def cli_entry_point():
     parser_VM_start = subparsers.add_parser(
         'VM_start', help='Start a VM instance')
 
-    # End VM instance Command 
+    # End VM instance Command
 
     parser_VM_end = subparsers.add_parser('VM_end', help='End VM instance')
 
@@ -180,40 +178,17 @@ def cli_entry_point():
         'ssh_key', help='The public key of the user')
     parser_auth.add_argument(
         'service', help='The cloud service to authenticate into')
-    
-    # Pull datasets for upload to buckets Command
 
-    parser_datapull = subparsers.add_parser(
-        'datapull', help='Source a dataset from a local path or supported API')
-    parser_datapull.add_argument(
-        'location_type', help='local_path or url')
-    parser_datapull.add_argument(
-        'location', help='The local path or url to pull data from')
-    
-    # Set-up Kaggle Command
-
-    parser_setup_kaggle = subparsers.add_parser(
-        'setup-kaggle', help='Provide instructions for Kaggle set-up')
-    
-    # Download Kaggle Dataset command (***May be removed***)
-
-    parser_download_kaggle = subparsers.add_parser(
-        'download-kaggle', help='Download dataset from Kaggle')
-    parser_download_kaggle.add_argument(
-        'dataset', help='The Kaggle dataset to download (e.g., username/dataset-name)')
-    parser_download_kaggle.add_argument(
-        'dest_path', help='The local directory where the dataset will be downloaded')
-    
     # GCP Artifact Registry Authenication Command
 
     parser_gcp_docker_auth = subparsers.add_parser(
         'gcp-docker-auth', help='Authenticate to GCP Artifact Registry (test command)')
-    
+
     # Create Docker YAML file Command
 
     parser_docker_yaml_create = subparsers.add_parser(
         'docker-yaml-create', help='Create sample yaml file (test command)')
-    
+
     # Adding the commands to the parser
 
     args = parser.parse_args()

@@ -10,7 +10,6 @@
 
 from pathlib import Path
 import subprocess
-import json
 from .init_bucket import create_bucket_class_location, upload_blob
 from . import firebase_auth
 
@@ -38,6 +37,7 @@ def init_project(project_name):
         create_config(new_directory_path)
         (new_directory_path / 'data').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'src').mkdir(parents=True, exist_ok=True)
+        (new_directory_path / 'terraform').mkdir(parents=True, exist_ok=True)
         print("Directories successfully created!")
     except Exception as error:
         print(f"Error creating project: {error}")
@@ -61,10 +61,10 @@ def create_config(config_path):
 # or handled elsewhere (Ansible) later
 
 
-def prepare_project(src_path, data_path=None, tar_data=False):
+def prepare_project(src_path, data_path, tar_data=False):
     """
     Prepare project directories by creating Docker images and uploading to GCS bucket.
-    
+
     Args:
         src_path (str/Path): Path to source code directory
         data_path (str/Path, optional): Path to data directory. If None, skips data processing
@@ -77,14 +77,14 @@ def prepare_project(src_path, data_path=None, tar_data=False):
         return
 
     # Create bucket name using new naming convention
-    bucket_name = f"user-bucket-{uid}"
+    bucket_name = f"user-bucket-{uid}".lower()
     src_path = Path(src_path)
-    
+
     # Validate src path
     if not src_path.is_dir():
         print(f"Error: '{src_path}' is not a valid directory")
         return
-    
+
     # Generate and save requirements.txt
     requirements_path = src_path / 'requirements.txt'
     try:
@@ -107,12 +107,13 @@ def prepare_project(src_path, data_path=None, tar_data=False):
         if not data_path.is_dir():
             print(f"Error: '{data_path}' is not a valid directory")
             return
-        
+
         if not _process_data_directory(data_path, bucket_name, tar_data):
             return
 
     print(f"Project preparation completed. Bucket name: {bucket_name}")
     return bucket_name
+
 
 def _process_src_directory(src_path, bucket_name):
     """Helper function to process source directory"""
@@ -151,12 +152,14 @@ def _process_src_directory(src_path, bucket_name):
                 "requirements/requirements.txt")
     return True
 
+
 def _process_data_directory(data_path, bucket_name, tar_data):
     """Helper function to process data directory"""
     if tar_data:
         return _handle_tarred_data(data_path, bucket_name)
     else:
         return _handle_individual_files(data_path, bucket_name)
+
 
 def _handle_tarred_data(data_path, bucket_name):
     """Helper function to handle tarred data upload"""
@@ -172,6 +175,7 @@ def _handle_tarred_data(data_path, bucket_name):
         print(f"Error creating tar file for data directory: {error}")
         return False
 
+
 def _handle_individual_files(data_path, bucket_name):
     """Helper function to handle individual file uploads"""
     try:
@@ -183,6 +187,7 @@ def _handle_individual_files(data_path, bucket_name):
     except Exception as error:
         print(f"Error uploading individual files: {error}")
         return False
+
 
 def docker_yaml_create(image_name_src="src", image_name_data="data"):
     """Create Docker YAML configuration file"""
