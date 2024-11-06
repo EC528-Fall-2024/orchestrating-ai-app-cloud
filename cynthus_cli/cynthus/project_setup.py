@@ -34,26 +34,13 @@ def init_project(project_name):
 
     try:
         new_directory_path.mkdir(parents=True, exist_ok=True)
-        create_config(new_directory_path)
+        (new_directory_path / 'config').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'data').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'src').mkdir(parents=True, exist_ok=True)
         (new_directory_path / 'terraform').mkdir(parents=True, exist_ok=True)
         print("Directories successfully created!")
     except Exception as error:
         print(f"Error creating project: {error}")
-
-def create_config(config_path):
-
-    config_path_file = config_path / 'config.json'
-
-    # Create a dictionary to store the data
-    data = {
-        "machine_type": "e2-medium",
-        "disk_size": 30,
-    }
-
-    with open(config_path_file, "w") as outfile:
-        json.dump(data, outfile)
 
 # Prepare the data and src directories within the parent directory and build their images
 # creating a Dockerfile for each if one does not exist already, the Dockerfile
