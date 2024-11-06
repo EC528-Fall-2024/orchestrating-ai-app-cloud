@@ -12,6 +12,7 @@ from datasets import load_dataset
 from .kaggle_funcs import *
 from .terraform_funcs import *
 from .project_setup import *
+from . import init_bucket
 from .firebase_auth import *
 from datasets import load_dataset_builder
 # from ...ansible_main.cloud_init import cloud_init_gen
@@ -121,6 +122,14 @@ def project_datapull(location_type, location):
         print(f"Error calculating dataset size: {error}")
 
 
+def output_pull(bucket_name, dest):
+    '''Temporary implementation of pulling output from buckets until exact format is known'''
+    for blob in init_bucket.list_blobs(bucket_name):
+        if Path(blob.name).suffix == '.txt':  # Check if the blob name ends with .txt
+            print(f'Downloading {blob.name}')
+            init_bucket.download_blob_to_folder(bucket_name, blob.name, dest)
+
+
 def cli_entry_point():
     
     # From Firebase.py
@@ -159,7 +168,13 @@ def cli_entry_point():
     parser_VM_start = subparsers.add_parser(
         'VM_start', help='Start a VM instance')
 
-    # End VM instance Command 
+    parser_output_pull = subparsers.add_parser(
+        'pull', help='Pull from a Cynthus output bucket')
+    parser_output_pull.add_argument('bucket', help='The bucket to pull from')
+    parser_output_pull.add_argument('dest', help='File destination')
+
+    # End VM instance Command
+
 
     parser_VM_end = subparsers.add_parser('VM_end', help='End VM instance')
 
@@ -238,6 +253,8 @@ def cli_entry_point():
         project_vm_start()
     elif args.command == 'VM_end':
         project_vm_end()
+    elif args.command == 'pull':
+        output_pull(args.bucket, args.dest)
     elif args.command == 'prepare':
 
         src = input('Please provide the folder location for you src files:')

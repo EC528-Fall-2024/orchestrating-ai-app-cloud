@@ -64,6 +64,7 @@ def prepare_project(src_path, data_path, tar_data=False):
         return
 
     # Create bucket name using new naming convention
+    # CHANGE TO input-{user_defined_name}-{uid} SOON <------------
     bucket_name = f"user-bucket-{uid}".lower()
     src_path = Path(src_path)
 
