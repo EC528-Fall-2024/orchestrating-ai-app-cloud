@@ -1,3 +1,4 @@
+from pathlib import Path
 from google.cloud import storage
 import uuid
 
@@ -71,9 +72,21 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     blob = bucket.blob(source_blob_name)
 
     # Download the blob to a local file
-    blob.download_to_filename(destination_file_name)
+    blob.download_to_file(destination_file_name)
 
     print(f"Blob {source_blob_name} downloaded to {destination_file_name}.")
+
+
+def download_blob_to_folder(bucket_name, blob_name, destination_folder):
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    destination_path = Path(destination_folder) / blob_name
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+    blob.download_to_filename(destination_path)
+
+    print(f"Blob {blob_name} downloaded to {destination_path}.")
 
 
 def read_blob(bucket_name, blob_name):
@@ -110,9 +123,7 @@ def list_blobs(bucket_name):
     # List all blobs in the bucket
     blobs = bucket.list_blobs()
 
-    print("Files in the bucket:")
-    for blob in blobs:
-        print(blob.name)
+    return blobs
 
 
 if __name__ == "__main__":
