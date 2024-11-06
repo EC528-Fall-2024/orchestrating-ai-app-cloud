@@ -1,4 +1,3 @@
-
 #########################################################################################
 
 # This section includes functions that help set-up a user project. The functions include:

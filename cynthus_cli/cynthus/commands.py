@@ -1,13 +1,19 @@
 import argparse
 from pathlib import Path
+import requests
 import os
 import subprocess
+from google.cloud import storage
+
+import uuid
 import shutil
+from .init_bucket import create_bucket_class_location,upload_blob
 from datasets import load_dataset
 from .kaggle_funcs import *
 from .terraform_funcs import *
 from .project_setup import *
-from . import firebase_auth
+from .firebase_auth import *
+from datasets import load_dataset_builder
 # from ...ansible_main.cloud_init import cloud_init_gen
 
 # to update run pip install -e .
@@ -48,7 +54,7 @@ def gcp_docker_auth():
 # Loads a dataset into the data container
 # Inputs:
 # - location_type:
-# - location:
+# - location: 
 
 def project_datapull(location_type, location):
 
@@ -116,11 +122,24 @@ def project_datapull(location_type, location):
 
 
 def cli_entry_point():
-    firebase_auth.check_authentication()
+    
+    # From Firebase.py
+    check_authentication()
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
 
+    # Sign up a user
+    
+    parser_signup = subparsers.add_parser(
+        'sign_up', help='Create an account')
+    
+    # Log in to established Cynthus account
+    
+    parser_login = subparsers.add_parser(
+        'login', help='Log in to Cynthus account')
+ 
+    # Get information regarding VM package (NOT FULLY IMPLEMENTED SO FAR)
     parser_info = subparsers.add_parser('info', help='Get VM package info')
 
     # Initialize a project directory Command
@@ -134,19 +153,13 @@ def cli_entry_point():
 
     parser_prepare = subparsers.add_parser(
         'prepare', help='Prepare and push a project directory to the GCP')
-    parser_prepare.add_argument(
-        'src_path', help='The path to the src directory to prepare')
-    parser_prepare.add_argument(
-        'data_path', help='The path to the data directory to prepare')
 
     # Start a VM instance Command
 
     parser_VM_start = subparsers.add_parser(
         'VM_start', help='Start a VM instance')
-    parser_VM_start.add_argument(
-        'project_path', help='The path to the terraform main.tf file to start the VM')
 
-    # End VM instance Command
+    # End VM instance Command 
 
     parser_VM_end = subparsers.add_parser('VM_end', help='End VM instance')
 
@@ -167,31 +180,70 @@ def cli_entry_point():
         'ssh_key', help='The public key of the user')
     parser_auth.add_argument(
         'service', help='The cloud service to authenticate into')
+    
+    # Pull datasets for upload to buckets Command
 
+    parser_datapull = subparsers.add_parser(
+        'datapull', help='Source a dataset from a local path or supported API')
+    parser_datapull.add_argument(
+        'location_type', help='local_path or url')
+    parser_datapull.add_argument(
+        'location', help='The local path or url to pull data from')
+    
+    # Set-up Kaggle Command
+
+    parser_setup_kaggle = subparsers.add_parser(
+        'setup-kaggle', help='Provide instructions for Kaggle set-up')
+    
+    # Download Kaggle Dataset command (***May be removed***)
+
+    parser_download_kaggle = subparsers.add_parser(
+        'download-kaggle', help='Download dataset from Kaggle')
+    parser_download_kaggle.add_argument(
+        'dataset', help='The Kaggle dataset to download (e.g., username/dataset-name)')
+    parser_download_kaggle.add_argument(
+        'dest_path', help='The local directory where the dataset will be downloaded')
+    
     # GCP Artifact Registry Authenication Command
 
     parser_gcp_docker_auth = subparsers.add_parser(
         'gcp-docker-auth', help='Authenticate to GCP Artifact Registry (test command)')
-
+    
     # Create Docker YAML file Command
 
     parser_docker_yaml_create = subparsers.add_parser(
         'docker-yaml-create', help='Create sample yaml file (test command)')
-
+    
     # Adding the commands to the parser
 
     args = parser.parse_args()
 
-    if args.command == 'info':
+    if args.command == 'sign_up':
+        
+        email = input('Please provide the email you wish to use for this account:')
+        password = input('Create a password for this account:')
+        sign_up_user(email, password)
+
+    elif args.command == 'login':
+
+        email = input('Account Email:')
+        password = input('Password:')
+        login_user(email, password)
+
+    elif args.command == 'info':
         give_info()
     elif args.command == 'init':
         init_project(args.project_name)
     elif args.command == 'VM_start':
-        project_vm_start(args.project_path)
+        project_vm_start()
     elif args.command == 'VM_end':
         project_vm_end()
     elif args.command == 'prepare':
-        prepare_project(args.src_path, args.data_path)
+
+        src = input('Please provide the folder location for you src files:')
+        data = input('please provide the folder location for your data files:')
+        prepare_project(src, data, tar_data=False)
+
     # elif args.command == 'push':
     #     project_push(args.image_path, args.registry)
     # elif args.command == 'ssh':
