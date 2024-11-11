@@ -37,22 +37,27 @@ Sprint Slides:
 
 ## 1.   Vision and Goals Of The Project:
 
-In recent years, the use of AI Applications have become common workloads on the cloud platform. Many of the workloads follow a small number of typical deployment patterns; However, it is hard for developers to bootstrap and onboard their applications on cloud without prior experience or knowledge. There are a few open-source initiatives that aim to handle certain aspects of this process, whether it be providing workflow automation, downloading dependencies, etc., but there is a gap in the market for a platform that handles the process from end-to-end. We look to provide the infrastructure that end-user developers need to successfully deploy and monitor AI applications through a simple command-line interface. 
-
+Cynthus aims to simplify the deployment of AI applications on cloud platforms. While initially designed for Intel Developer Cloud (IDC), the project currently operates on Google Cloud Platform (GCP) due to accessibility considerations. The platform addresses the challenges developers face when deploying AI workloads by providing automated solutions for resource management, dependency handling, and deployment orchestration.
 Key goals of the project include:
 
-- Streamlining the process of resource allocation, dependency management, and model deployment
-- Integrating public and private sources of data, models, and dependencies into the cloud platform
-- Leveraging Terraform and Ansible to autonomously deploy cloud instances
-- Providing a reliable and intuitive command-line interface to programmatically interact with the product
+- Creating a simplified command-line interface for end-to-end AI application deployment
+- Automating resource allocation and dependency management through Terraform and Ansible
+- Providing seamless integration with public datasets and models from sources like HuggingFace and Kaggle
+- Implementing secure containerized deployments using Docker
+- Managing cloud infrastructure through automated scripts and serverless functions
+- Supporting scalable and maintainable AI workload deployments
 
 
 ## 2. Users/Personas Of The Project:
 
-The AI deployment platform will be used by developers who look to host AI applications on the cloud without the requirement of hardware or extensive prior knowledge. User stories may include:
+The platform serves various users in the AI development ecosystem:
 
-- Engineers who look to leverage hardware-dependent AI models will be automatically provided with an infrastructure with properly allocated hardware and resources such as memory, storage and computing.
-- People unfamiliar with cloud computing who look to explore AI capability will be able to deploy AI models on the cloud without needing to specify techincal requirements. Data sourcing, dependency installation and model training will be accomplished autonomously on the cloud.
+- AI developers who need an efficient way to deploy models without managing complex infrastructure
+- Engineers requiring specific hardware configurations for AI model deployment
+- Newcomers to cloud computing who want to explore AI capabilities without deep cloud expertise
+- Teams needing secure and scalable infrastructure for AI workloads
+- Developers working with custom models who need flexible deployment options
+- Organizations requiring automated resource management and cost optimization
 
 ** **
 
@@ -60,109 +65,167 @@ The AI deployment platform will be used by developers who look to host AI applic
 
 The AI Deployment Platform provides:
 
-- Support for sourcing models, datasets, and libraries from public and private sources
-- Automatic cloud instance generation with proper hardware and resource allocation
-- End-to-end training of AI models with automatic package installation and support
-- Security of proprietary data such as data and models on cloud infrastructure
+- Command-line interface with:
+  - User authentication via Firebase
+  - Project initialization and configuration
+  - Automated deployment to cloud storage
+  - Resource management and monitoring
+
+- Cloud Infrastructure:
+  - Serverless functions for VM provisioning
+  - MySQL database for logging and state management
+  - Cloud Storage buckets for project data and source code
+  - Docker containerization for application deployment
+
+- Integration Features:
+  - Support for HuggingFace and Kaggle datasets
+  - Automated dependency management
+  - Version control for containers and deployments
+
+- Security Features:
+  - Firebase authentication
+  - Resource tagging for access control
+  - Secure secret management
+  - Service account management
 
 ** **
 
 ## 4. Solution Concept
 
-![User](https://github.com/user-attachments/assets/f8f9d610-5022-4f57-9a3d-359243f91373)
+![Architecture](https://github.com/user-attachments/assets/cd56583e-ad03-487c-89a6-f423d75a4865)
 
-- Cloud Infrastructure:
-  - Primary compute platform: Intel Developer Cloud (IDC)
-  - Support for hybrid and multi-cloud deployments to leverage best-of-breed services
+The solution architecture consists of several key components working together to provide end-to-end AI application deployment:
 
-- Infrastructure:
-  - Terraform for provisioning and managing cloud resources
-  - Cloud-init for initial VM setup and universal package installation
-  - Ansible for ongoing configuration management and application deployment
+### Client Layer
+- Command Line Interface (CLI)
+  - Primary user interaction point
+  - Handles data and source code uploads
+  - Generates requirements.txt through pipreqs function
+  - Monitors output storage for results
 
-- AI/ML Frameworks:
-  - Native support for popular frameworks like PyTorch and TensorFlow
-  - Automatic environment dependency configuration for custom code files
+### Storage Layer
+- Input Object Storage (S3 or Equivalent)
+  - Stores three key components:
+    - User data
+    - requirements.txt
+    - Source code
+  - Acts as the trigger point for deployment pipeline
 
-- Model and Data Management:
-  - Integration with HuggingFace for access to pre-trained models and datasets
-  - Support for Kaggle datasets
-  - Custom data connectors for proprietary data sources
+- Output Object Storage (S3 or Equivalent)
+  - Stores computation results
+  - Contains processed data and source code outputs
+  - Accessible by clients for retrieving results
 
-- Security and Privacy:
-  - Encryption mechanisms for data and model protection
-  - Integration with cloud-native identity and access management services
-  - Secure enclaves for handling sensitive data
+### Processing Layer
+- Serverless Function (Lambda Equivalent)
+  - Triggered by updates to input storage
+  - Responsible for VM creation and setup
+  - Handles three main tasks:
+    - Installing requirements
+    - Copying source code
+    - Getting data from object storage
+  - Creates and manages VM instances
 
-- User Interface:
-  - React-based web application for the front-end
-  - RESTful API backend for programmatic access
+### Management Layer
+- SQL Database
+  - Tracks key metadata:
+    - Run ID
+    - User ID
+    - Path to Data
+    - Path to Source Code
+    - State
+  - Maintains deployment state information
+
+- Orchestrator Server
+  - Monitors VM health through heartbeat mechanism
+  - Manages state updates
+  - Handles failure recovery
+  - Coordinates between components
+  - Updates database status
+
+### Compute Layer
+- VM Bare Metal
+  - Executes AI workloads
+  - Processes data
+  - Reports status to orchestrator
+  - Writes results to output storage
+
+### Key Workflows:
+1. Data Ingestion Flow:
+   - Client uploads data and code
+   - Pipreqs generates requirements
+   - Materials stored in input storage
+
+2. Deployment Flow:
+   - Serverless function detects new input
+   - Creates and configures VM
+   - Orchestrator monitors deployment
+   - Database tracks state changes
+
+3. Execution Flow:
+   - VM processes workload
+   - Results written to output storage
+   - Client notified of completion
+   - State updated in database
+
+4. Monitoring Flow:
+   - Orchestrator receives VM heartbeats
+   - Triggers rerun upon failures
+   - Updates deployment state
+   - Maintains system reliability
+
+This architecture provides a scalable, reliable, and automated pipeline for AI application deployment, with clear separation of concerns and robust monitoring capabilities.
 
 ** **
 
 ## 5. Acceptance criteria
 
-Minimum acceptance criteria is
- 
-- Successfully deploy a basic AI model on IDC using the platform
-  - Demonstrate end-to-end workflow from model selection to deployment
-  - Show automated resource provisioning and configuration
+Minimum acceptance criteria includes:
 
-- Automated setup of PyTorch environment
+- Functional CLI for end-to-end deployment:
+  - User authentication and project management
+  - Automated resource provisioning
+  - Container deployment and monitoring
 
-  - Correctly install PyTorch and its dependencies
-  - Provide a reproducible environment across different deployments
+- Cloud Infrastructure Setup:
+  - Successful VM provisioning with Terraform
+  - Automated configuration with Ansible
+  - Docker container deployment
 
+- External Integrations:
+  - Working connections to HuggingFace and Kaggle
+  - Successful data and model management
 
-- Integration with at least one external resource
-
-  - Successfully pull a model or dataset from HuggingFace
-  - Demonstrate proper versioning and caching of external resources
-
-
-- Basic user interface for project management
-
-  - Allow users to create, monitor, and manage AI projects
-  - Provide real-time status updates on training and deployment processes
-
-
-- Implement core security features
-
-  - Secure user authentication and authorization
-  - Data encryption for storage and transmission
+- Security Implementation:
+  - User authentication
+  - Resource access control
+  - Secure deployment pipeline
 
 ** **
 
 ## 6.  Release Planning:
 
-Release 1 (Foundation):
-- Develop comprehensive user stories and requirements
-- Research and prototype key technologies (Ansible, Terraform, OPEA)
-- Set up development environment on IDC
-- Implement basic user authentication and project creation
+Current Progress (Through Sprint 4):
+- Implemented basic CLI functionality
+- Established GCP infrastructure
+- Created containerized deployment pipeline
+- Integrated authentication and security features
+- Developed logging and monitoring systems
 
-Release 2 (Core Infrastructure):
-- Use Terraform to provision resources
-- Begin managing AI workloads on IDC
-- Configure cloud resources with Ansible playbooks (Setup libraries such as PyTorch, TensorFlow etc.)
-- Automatic generation of cloud-init script for custom VM initialization
-- Develop initial CLI for platform interactions
+Next Steps:
+- Deploy orchestrator
+- Implement VM health checks
+- Enhance dataset API integration
+- Improve bucket management
+- Add containerized source code security
+- Implement dynamic resource allocation
+- Create real AI workload demonstrations
 
-Release 3 (External Integrations):
-- Implement connectors for HuggingFace and Kaggle
-- Develop a version control system for models and datasets
-- Enhance CLI with data and model management commands
-
-Release 4 (Security and Privacy):
-- Implement end-to-end encryption for data and models
-- Develop access control and permission management system
-- Create secure integration methods for proprietary consumer data
-
-Release 5 (User Interface and Optimization):
-- Develop web-based user interface for project management
-- Implement real-time monitoring and logging features
-- Optimize resource allocation and scaling algorithms
-- Conduct comprehensive testing and performance tuning
+Stretch Goals:
+- Queueing system for async operations
+- Enhanced secret management
+- Multi-tenancy support
+- Distributed ML training/inference
 
 ** **
 
