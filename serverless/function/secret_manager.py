@@ -21,5 +21,4 @@ class SecretManager:
             'SSH_PUBLIC_KEY': self.get_secret('SSH_PUBLIC_KEY'),
             'PROJECT_ID': self.get_secret('PROJECT_ID'),
             'ZONE': self.get_secret('ZONE'),
-            'REQUIREMENTS_BUCKET': self.get_secret('REQUIREMENTS_BUCKET')
         }

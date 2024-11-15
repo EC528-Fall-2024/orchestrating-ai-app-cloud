@@ -1,5 +1,12 @@
 # Terraform main configuration
 MAIN_TF = '''
+terraform {
+  backend "gcs" {
+    bucket = "terraform-state-cynthus"
+    prefix = "terraform/state"
+  }
+}
+
 provider "google" {
   project = var.project_id
   region  = "us-east4"
@@ -12,8 +19,9 @@ resource "google_compute_instance" "default" {
   zone         = var.zone
 
   metadata = {
-    user-data = file(var.cloud_init_config)
+    user-data = templatefile(var.cloud_init_config, {})
   }
+  
   boot_disk {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2204-lts"
@@ -103,4 +111,5 @@ variable "cloud_init_config" {
   description = "Path to cloud-init configuration file"
   type        = string
 }
+
 '''

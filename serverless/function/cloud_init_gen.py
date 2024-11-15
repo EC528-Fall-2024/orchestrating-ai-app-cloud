@@ -1,7 +1,6 @@
 import os
 from google.cloud import storage
 
-
 class CloudInitGenerator:
     def __init__(self, bucket_name):
         if not bucket_name:
@@ -15,7 +14,7 @@ class CloudInitGenerator:
         except Exception as e:
             raise RuntimeError(f"Failed to initialize storage bucket: {e}")
 
-    def load_requirements(self, requirements_blob_name='requirements.txt'):
+    def load_requirements(self, requirements_blob_name='src/requirements.txt'):
         """Load requirements from Cloud Storage"""
         try:
             blob = self.bucket.blob(requirements_blob_name)
@@ -30,9 +29,11 @@ class CloudInitGenerator:
                 'requests',
                 # Add other default requirements
             ]
-    def generate_cloud_init_yaml(self, ssh_key):
+    def generate_cloud_init_yaml(self, ssh_key, key_json_content):
         """Generate the cloud-init YAML file"""
         requirements = self.load_requirements()
+        
+        formatted_key_json = '\n'.join('      ' + line for line in key_json_content.splitlines())
 
         yaml_content = f"""#cloud-config
 users:
@@ -47,6 +48,13 @@ ssh_pwauth: false
 
 package_update: true
 package_upgrade: true
+
+write_files:
+- path: /home/cynthus/key.json  # Adjusted path to be in cynthus home directory
+  permissions: '0600'
+  owner: root:root        # Changed owner to match your user
+  content: |
+{formatted_key_json}
 
 packages:
 - python3-pip
@@ -77,10 +85,19 @@ runcmd:
 - chown -R cynthus:cynthus /home/cynthus/venv 
 - echo "Python venv setup complete" > /home/cynthus/venv_setup_complete
 - chown cynthus:cynthus /home/cynthus/venv_setup_complete
+- sudo chmod a+rwx /home/cynthus/key.json
+- sudo su - cynthus -c "sudo gcloud auth activate-service-account --key-file=/home/cynthus/key.json"
 - mkdir -p /home/cynthus/workspace
-- gsutil -m cp -r gs://{self.bucket_name}/* /home/cynthus/workspace/
-- chown -R cynthus:cynthus /home/cynthus/workspace
+- sudo gsutil cp -r gs://{self.bucket_name}/src/* /home/cynthus/workspace
+- sudo chown -R cynthus:cynthus /home/cynthus/workspace
+- cd /home/cynthus/workspace && for f in *.py; do if [ -f "$f" ]; then /home/cynthus/venv/bin/python "$f"; fi; done
+- echo "Uploading workspace results to output bucket..."
+- sudo gsutil cp -r /home/cynthus/workspace/* gs://output-{self.bucket_name}/workspace/
+- echo "Workspace upload complete" > /home/cynthus/upload_complete
+
 """
 
         print(f"Generated cloud-init YAML file")
+        print(f"YAML content: {yaml_content}")
+        
         return yaml_content

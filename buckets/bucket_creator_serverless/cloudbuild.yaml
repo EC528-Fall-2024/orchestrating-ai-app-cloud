@@ -1,0 +1,20 @@
+steps:
+  # Deploy cloud function
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - gcloud
+      - functions
+      - deploy
+      - bucket_operations
+      - --region=us-central1
+      - --source=.
+      - --trigger-http
+      - --runtime=python39
+      - --entry-point=bucket_operations
+      - --memory=512MB
+      - --timeout=60s
+      - --min-instances=0
+      - --service-account=firebase-bucket-creator@cynthusgcp-438617.iam.gserviceaccount.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY
