@@ -66,6 +66,7 @@ def generate_tfvars(tmp_dir, cloud_init_config, instance_name, request_json=None
         'project_id': os.environ.get('PROJECT_ID'),
         'network': 'default',
         'disk_size': disk_size,
+        'user_id': user_id,
         'labels': {
             'role': 'managed',
             'environment': 'development',

@@ -3,7 +3,7 @@ MAIN_TF = '''
 terraform {
   backend "gcs" {
     bucket = "terraform-state-cynthus"
-    prefix = "terraform/state"
+    prefix = "terraform/state/${var.user_id}/terraform.tfstate"
   }
 }
 
@@ -59,6 +59,11 @@ output "instance_ip" {
 
 # Terraform variables configuration
 VARIABLES_TF = '''
+variable "user_id" {
+  description = "The UUID of the instance"
+  type        = string
+}
+
 variable "zone" {
   description = "The zone where resources will be created"
   type        = string
