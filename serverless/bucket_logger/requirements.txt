@@ -1,0 +1,3 @@
+functions-framework==3.*
+mysql-connector-python==8.*
+google-cloud-storage==2.*
