@@ -1,5 +1,6 @@
 import os
 from google.cloud import storage
+import time 
 
 class CloudInitGenerator:
     def __init__(self, bucket_name):
@@ -15,20 +16,34 @@ class CloudInitGenerator:
             raise RuntimeError(f"Failed to initialize storage bucket: {e}")
 
     def load_requirements(self, requirements_blob_name='src/requirements.txt'):
-        """Load requirements from Cloud Storage"""
-        try:
-            blob = self.bucket.blob(requirements_blob_name)
-            requirements_content = blob.download_as_text()
-            return [line.strip() for line in requirements_content.splitlines() 
-                   if line.strip() and not line.startswith('#')]
-        except Exception as e:
-            print(f"Warning: Could not load requirements from GCS: {e}")
-            # Fallback to basic requirements
-            return [
-                'ansible',
-                'requests',
-                # Add other default requirements
-            ]
+        """Load requirements from Cloud Storage with retry logic"""
+        attempts = 0
+        last_exception = None
+
+        while attempts < self.max_retries:
+            try:
+                blob = self.bucket.blob(requirements_blob_name)
+                if blob.exists():
+                    requirements_content = blob.download_as_text()
+                    return [line.strip() for line in requirements_content.splitlines() 
+                           if line.strip() and not line.startswith('#')]
+                else:
+                    print(f"Attempt {attempts + 1}/{self.max_retries}: requirements.txt not found yet")
+            except Exception as e:
+                last_exception = e
+                print(f"Attempt {attempts + 1}/{self.max_retries} failed: {e}")
+            
+            attempts += 1
+            if attempts < self.max_retries:
+                time.sleep(self.retry_delay * attempts)  # Exponential backoff
+        
+        # If we've exhausted all retries, log the warning and return default requirements
+        print(f"Warning: Could not load requirements from GCS after {self.max_retries} attempts: {last_exception}")
+        return [
+            'ansible',
+            'requests',
+            # Add other default requirements
+        ]
     def generate_cloud_init_yaml(self, ssh_key, key_json_content):
         """Generate the cloud-init YAML file"""
         requirements = self.load_requirements()
