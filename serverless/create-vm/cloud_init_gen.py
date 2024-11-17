@@ -94,6 +94,9 @@ runcmd:
 - echo "Uploading workspace results to output bucket..."
 - sudo gsutil cp -r /home/cynthus/workspace/* gs://output-{self.bucket_name}/workspace/
 - echo "Workspace upload complete" > /home/cynthus/upload_complete
+- PRIVATE_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/ip)
+- PAYLOAD='{"ip":"'$PRIVATE_IP'"}'
+- curl -X POST "http://10.150.0.36:5000/run" -H "Content-Type: application/json" -d "$PAYLOAD"
 
 """
 
