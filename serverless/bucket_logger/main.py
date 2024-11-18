@@ -7,7 +7,6 @@ from google.cloud import storage
 import mysql.connector
 from mysql.connector import Error
 import logging
-import socket
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -99,81 +98,81 @@ def handle_bucket_creation(cloud_event):
         logger.info(f"Processing bucket creation: {bucket_name}")
 
         # Only process user buckets
-        if not bucket_name.startswith('user_'):
+        if not bucket_name.startswith('user-bucket-'):
             logger.info(f"Skipping non-user bucket: {bucket_name}")
             return
 
         # Extract user_id from bucket name
-        parts = bucket_name.split('_')
-        if len(parts) >= 2:
-            user_id = f"user_{parts[1]}"
+        parts = bucket_name.split('-')
+        if len(parts) >= 3:
+            user_id = parts[2]  # Remove 'user_' prefix
         else:
             logger.error(f"Invalid bucket name format: {bucket_name}")
             return
 
-        # Generate run_id
-        run_id = f"run_{str(uuid.uuid4())[:8]}"
+        # Generate run_id without 'run_' prefix
+        run_id = str(uuid.uuid4())[:8]
 
-        # Determine bucket type
-        is_data_bucket = '_data' in bucket_name
-        is_src_bucket = '_src' in bucket_name
-
-        if not (is_data_bucket or is_src_bucket):
-            logger.warning(f"Bucket {bucket_name} does not match expected naming pattern")
-            return
-
-        # Get corresponding bucket name
-        corresponding_bucket = bucket_name.replace('_data', '_src') if is_data_bucket else bucket_name.replace('_src', '_data')
-
-        # Check if corresponding bucket exists
+        # Check for output bucket
+        output_bucket_name = f"output-{bucket_name}"
         storage_client = storage.Client()
+        
         try:
-            storage_client.get_bucket(corresponding_bucket)
-            both_buckets_exist = True
-            logger.info("Both buckets exist")
+            # Wait for output bucket to exist
+            output_bucket_exists = False
+            try:
+                storage_client.get_bucket(output_bucket_name)
+                output_bucket_exists = True
+                logger.info(f"Output bucket {output_bucket_name} exists")
+            except Exception as e:
+                logger.info(f"Output bucket {output_bucket_name} does not exist yet")
+                return  # Exit and wait for output bucket to be created
+
+            # Only proceed if output bucket exists
+            if output_bucket_exists:
+                bucket = storage_client.get_bucket(bucket_name)
+                data_path_blob = bucket.blob('data/')
+                src_path_blob = bucket.blob('src/')
+                
+                # Create the paths if they don't exist
+                if not data_path_blob.exists():
+                    data_path_blob.upload_from_string('')
+                if not src_path_blob.exists():
+                    src_path_blob.upload_from_string('')
+                    
+                logger.info("Required paths exist or have been created")
+
+                # Connect to database and insert record
+                connection = get_db_connection()
+                try:
+                    # Insert only DEPLOYING state
+                    cursor = connection.cursor()
+                    cursor.execute("""
+                        INSERT INTO logs (run_id, user_id, path_to_data, path_to_src, path_to_output, state)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (
+                        run_id,
+                        user_id,
+                        f"gs://{bucket_name}/data/",
+                        f"gs://{bucket_name}/src/",
+                        f"gs://{output_bucket_name}/",
+                        'DEPLOYING'
+                    ))
+
+                    connection.commit()
+                    cursor.close()
+                    logger.info(f"Successfully processed bucket creation for {bucket_name}")
+
+                except Exception as e:
+                    logger.error(f"Database error: {e}")
+                    raise
+                finally:
+                    if connection:
+                        connection.close()
+
         except Exception as e:
-            both_buckets_exist = False
-            logger.info(f"Corresponding bucket does not exist: {e}")
-
-        # Connect to database and insert records
-        connection = get_db_connection()
-        try:
-            # Insert DEPLOYING state
-            cursor = connection.cursor()
-            cursor.execute("""
-                INSERT INTO logs (run_id, user_id, path_to_data, path_to_src, state)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (
-                run_id,
-                user_id,
-                f"gs://{bucket_name if is_data_bucket else corresponding_bucket}/uploaded_files/",
-                f"gs://{bucket_name if is_src_bucket else corresponding_bucket}/uploaded_files/",
-                'DEPLOYING'
-            ))
-
-            # If both buckets exist, insert ACTIVE state
-            if both_buckets_exist:
-                cursor.execute("""
-                    INSERT INTO logs (run_id, user_id, path_to_data, path_to_src, state)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (
-                    run_id,
-                    user_id,
-                    f"gs://{bucket_name if is_data_bucket else corresponding_bucket}/uploaded_files/",
-                    f"gs://{bucket_name if is_src_bucket else corresponding_bucket}/uploaded_files/",
-                    'ACTIVE'
-                ))
-
-            connection.commit()
-            cursor.close()
-            logger.info(f"Successfully processed bucket creation for {bucket_name}")
-
-        except Exception as e:
-            logger.error(f"Database error: {e}")
+            logger.error(f"Error checking/creating paths: {e}")
             raise
-        finally:
-            if connection:
-                connection.close()
 
     except Exception as e:
         logger.error(f"Error processing event: {e}")
