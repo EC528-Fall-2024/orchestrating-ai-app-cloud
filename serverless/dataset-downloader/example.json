@@ -1,0 +1,9 @@
+{
+    "dataset_url": "https://huggingface.co/datasets/username/datasetname",
+    "bucket_name": "your-gcs-bucket",
+    "credentials": {
+      "huggingface": {
+        "token": "your-huggingface-token"
+      }
+    }
+}
