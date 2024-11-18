@@ -6,9 +6,96 @@ import tempfile
 import json
 from terraform_configs import MAIN_TF, VARIABLES_TF
 
+@functions_framework.http
+def destroy_resources(request):
+    """HTTP Cloud Function to destroy terraform resources."""
+    try:
+        request_json = request.get_json()
+        if not request_json or 'user_id' not in request_json:
+            return {'error': 'user_id is required'}, 400
+
+        user_id = request_json['user_id']
+        instance_name = f"cynthus-compute-instance-{user_id}"
+
+        # Create temporary directory for Terraform files
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Setup Terraform environment
+            terraform_path = setup_terraform_environment(tmp_dir, user_id)
+            
+            # Generate tfvars
+            generate_tfvars(tmp_dir, instance_name, request_json)
+            
+            # Get the workspace name from the state file in GCS
+            workspace_name = get_workspace_name(user_id)
+            
+            if not workspace_name:
+                return {'error': 'No workspace found for this user'}, 404
+            
+            # Select the workspace
+            subprocess.run(
+                [terraform_path, 'workspace', 'select', workspace_name],
+                cwd=tmp_dir,
+                capture_output=True,
+                check=True
+            )
+            
+            # Run terraform destroy
+            destroy_process = subprocess.run(
+                [terraform_path, 'destroy', '-auto-approve'],
+                cwd=tmp_dir,
+                capture_output=True,
+                text=True
+            )
+            
+            if destroy_process.returncode != 0:
+                print(f"Terraform destroy failed: {destroy_process.stderr}")
+                return {'error': 'Terraform destroy failed', 'details': destroy_process.stderr}, 500
+            
+            # Clean up the workspace
+            subprocess.run(
+                [terraform_path, 'workspace', 'delete', workspace_name],
+                cwd=tmp_dir,
+                capture_output=True
+            )
+            
+            bucket_deleted = delete_user_bucket(user_id)
+            
+            response = {
+                'message': 'Resources destroyed successfully',
+                'workspace': workspace_name,
+                'bucket_deleted': bucket_deleted
+            }
+            
+            if not bucket_deleted:
+                response['warning'] = 'Terraform resources were destroyed, but there was an issue deleting the user bucket'
+            
+            return response
+            
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return {'error': str(e)}, 500
+
+def get_workspace_name(user_id):
+    """Get the workspace name from GCS state files"""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket('terraform-state-cynthus')
+    prefix = f'terraform/state/{user_id}/'
+    
+    # List all objects in the user's state directory
+    blobs = bucket.list_blobs(prefix=prefix)
+    
+    for blob in blobs:
+        # Look for the workspace-specific state file
+        if blob.name.endswith('.tfstate') and 'default.tfstate' not in blob.name:
+            # Extract workspace name from the path
+            workspace_name = blob.name.split('/')[-1].replace('.tfstate', '')
+            return workspace_name
+    
+    return None
+
 def setup_terraform_environment(tmp_dir, user_id):
     """Create Terraform files in temporary directory"""
-    print(f"Setting up Terraform environment for user {user_id}...")
+    print("Starting Terraform environment setup...")
     
     main_tf_path = os.path.join(tmp_dir, 'main.tf')
     variables_tf_path = os.path.join(tmp_dir, 'variables.tf')
@@ -19,99 +106,97 @@ def setup_terraform_environment(tmp_dir, user_id):
     with open(variables_tf_path, 'w') as f:
         f.write(VARIABLES_TF)
     
-    terraform_path = '/usr/bin/terraform'
-    if not os.path.exists(terraform_path):
-        raise RuntimeError("Terraform executable not found")
+    # Check multiple possible Terraform locations
+    terraform_paths = [
+        '/usr/bin/terraform',
+        '/usr/local/bin/terraform',
+        '/opt/terraform/terraform'
+    ]
     
-    # Initialize Terraform with the specific state for this user
+    terraform_path = None
+    for path in terraform_paths:
+        if os.path.exists(path):
+            terraform_path = path
+            break
+    
+    if not terraform_path:
+        raise RuntimeError("Terraform executable not found in expected locations")
+    
+    print(f"Using Terraform at: {terraform_path}")
+    
+    # Initialize Terraform
+    cloud_init_path = os.path.join(tmp_dir, 'cloud-init.yaml')
+    with open(cloud_init_path, 'w') as f:
+        f.write("""#cloud-config
+runcmd:
+  - echo "dummy config"
+""")
+        
     subprocess.run([
         terraform_path, 'init',
-        '-backend-config', f'prefix=terraform/state/{user_id}/terraform.tfstate'
+        '-backend-config', f'bucket=terraform-state-cynthus',
+        '-backend-config', f'prefix=terraform/state/{user_id}'
     ], cwd=tmp_dir, check=True)
     
     return terraform_path
 
-@functions_framework.http
-def destroy_resources(request):
-    """Destroy VM and bucket resources.
-    
-    The format of the request is:
-    {
-        "user_id": "1234567890"
+def generate_tfvars(tmp_dir, instance_name, request_json=None):
+    """Generate terraform.tfvars.json file with VM configuration"""
+    # Get configuration from request or use defaults
+    machine_type = request_json.get('machine_type', 'e2-medium')
+    disk_size = request_json.get('disk_size', 100)
+    user_id = request_json.get('user_id', 'unknown')
+
+    tfvars_content = {
+        'instance_name': instance_name,
+        'cloud_init_config': 'cloud-init.yaml',
+        'machine_type': machine_type,
+        'zone': os.environ.get('ZONE'),
+        'project_id': os.environ.get('PROJECT_ID'),
+        'network': 'default',
+        'disk_size': disk_size,
+        'user_id': user_id,
+        'labels': {
+            'role': 'managed',
+            'environment': 'development',
+            'user_id': user_id,
+            'associated_bucket': f"user-bucket-{user_id}",
+            'created_by': 'cloud_function'
+        },
+        'tags': [
+            instance_name,
+            f"user-{user_id}",
+            'http-server',
+            'https-server',
+            'ssh-server'
+        ],
+        'firewall_ports': [
+            '80', '443', '6379', '8001', '6006', '6007',
+            '6000', '7000', '8808', '8000', '8888',
+            '5173', '5174', '9009', '9000'
+        ]
     }
     
-    Args:
-        request (Request): HTTP request object.
-    Returns:
-        Tuple[Dict[str, str], int]: A tuple containing a dictionary with the response message and the HTTP status code.
-    """
+    # Write the tfvars file
+    tfvars_path = os.path.join(tmp_dir, 'terraform.tfvars.json')
+    with open(tfvars_path, 'w') as f:
+        json.dump(tfvars_content, f, indent=2)
+
+def delete_user_bucket(user_id):
+    """Delete the user's GCS bucket"""
     try:
-        required_env_vars = {
-            'PROJECT_ID': os.environ.get('PROJECT_ID'),
-            'ZONE': os.environ.get('ZONE')
-        }
+        storage_client = storage.Client()
+        bucket_name = f"user-bucket-{user_id}"
+        bucket = storage_client.bucket(bucket_name)
         
-        missing_vars = [var for var, value in required_env_vars.items() if not value]
-        if missing_vars:
-            return {
-                'error': f'Missing required environment variables: {", ".join(missing_vars)}'
-            }, 500
+        # Delete all objects in the bucket first
+        blobs = bucket.list_blobs()
+        for blob in blobs:
+            blob.delete()
             
-        request_json = request.get_json(silent=True)
-        if not request_json or 'user_id' not in request_json:
-            return {'error': 'user_id is required'}, 400
-
-        user_id = request_json['user_id']
-        
-        # Create temporary directory for Terraform files
-        tmp_dir = tempfile.mkdtemp(prefix=f"tf-destroy-{user_id}-")
-        try:
-            # Set up Terraform environment
-            terraform_path = setup_terraform_environment(tmp_dir, user_id)
-            
-            # Run terraform destroy
-            result = subprocess.run(
-                [terraform_path, 'destroy', '-auto-approve'],
-                cwd=tmp_dir,
-                capture_output=True,
-                text=True,
-                env={
-                    **os.environ,
-                    'TF_VAR_project_id': os.environ.get('PROJECT_ID'),
-                    'TF_VAR_zone': os.environ.get('ZONE'),
-                    'TF_VAR_user_id': user_id
-                }
-            )
-            
-            if result.returncode != 0:
-                return {
-                    'error': 'Terraform destroy failed',
-                    'details': result.stderr
-                }, 500
-
-            # Delete the associated buckets
-            storage_client = storage.Client()
-            buckets_to_delete = [
-                f"user-bucket-{user_id}",
-                f"output-user-bucket-{user_id}"
-            ]
-
-            for bucket_name in buckets_to_delete:
-                try:
-                    bucket = storage_client.get_bucket(bucket_name)
-                    bucket.delete(force=True)
-                except Exception as e:
-                    print(f"Error deleting bucket {bucket_name}: {e}")
-
-            return {
-                'message': f'Resources destroyed for user {user_id}',
-                'terraform_output': result.stdout
-            }, 200
-
-        finally:
-            if os.path.exists(tmp_dir):
-                import shutil
-                shutil.rmtree(tmp_dir)
-
+        # Delete the bucket itself
+        bucket.delete()
+        return True
     except Exception as e:
-        return {'error': str(e)}, 500
+        print(f"Error deleting bucket: {str(e)}")
+        return False

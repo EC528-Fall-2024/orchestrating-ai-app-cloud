@@ -8,7 +8,7 @@ from cloud_init_gen import CloudInitGenerator
 from secret_manager import SecretManager
 from terraform_configs import MAIN_TF, VARIABLES_TF
 
-def setup_terraform_environment(tmp_dir):
+def setup_terraform_environment(tmp_dir, user_id):
     """Create Terraform files in temporary directory"""
     print("Starting Terraform environment setup...")
     
@@ -48,7 +48,14 @@ def setup_terraform_environment(tmp_dir):
         raise RuntimeError("Terraform executable not found in expected locations")
     
     print(f"Using Terraform at: {terraform_path}")
-    subprocess.run([terraform_path, 'init'], cwd=tmp_dir, check=True)
+    
+    # Initialize Terraform
+    subprocess.run([
+        terraform_path, 'init',
+        '-backend-config', f'bucket=terraform-state-cynthus',
+        '-backend-config', f'prefix=terraform/state/{user_id}'
+    ], cwd=tmp_dir, check=True)
+    
     return terraform_path
 
 def generate_tfvars(tmp_dir, cloud_init_config, instance_name, request_json=None):
@@ -126,19 +133,24 @@ def create_vm(request):
         cloud_init_gen = CloudInitGenerator(f"user-bucket-{request_json['user_id']}")
         cloud_init_yaml = cloud_init_gen.generate_cloud_init_yaml(env_vars['SSH_PUBLIC_KEY'], key_json_content)
         
+        # Debug: Print generated cloud-init YAML content
+        print("Generated cloud-init YAML content:")
+        print(cloud_init_yaml)
+
+        
         tmp_dir = tempfile.mkdtemp(prefix=f"tf-{request_json['user_id']}-")
         try:
             cloud_init_path = os.path.join(tmp_dir, 'cloud-init-config.yaml')
             with open(cloud_init_path, 'w') as f:
                 f.write(cloud_init_yaml)
             
-            terraform_path = setup_terraform_environment(tmp_dir)
+            terraform_path = setup_terraform_environment(tmp_dir, request_json['user_id'])
             instance_name = f"cynthus-compute-instance-{request_json['user_id']}"
             
             generate_tfvars(tmp_dir, cloud_init_path, instance_name, request_json)
             
             # Create unique workspace
-            workspace_name = f"{instance_name}-{os.urandom(4).hex()}"
+            workspace_name = f"{instance_name}"
             subprocess.run(
                 [terraform_path, 'workspace', 'new', workspace_name],
                 cwd=tmp_dir,

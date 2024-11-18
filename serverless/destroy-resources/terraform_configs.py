@@ -1,10 +1,7 @@
 # Terraform main configuration
 MAIN_TF = '''
 terraform {
-  backend "gcs" {
-    bucket = "terraform-state-cynthus"
-    prefix = "terraform/state/${var.user_id}/terraform.tfstate"
-  }
+  backend "gcs" {}
 }
 
 provider "google" {
@@ -115,6 +112,7 @@ variable "firewall_ports" {
 variable "cloud_init_config" {
   description = "Path to cloud-init configuration file"
   type        = string
+  default     = "" # Make it optional by setting default to empty string
 }
 
 '''

@@ -47,17 +47,15 @@ class CloudInitGenerator:
             'requests',
             # Add other default requirements
         ]
+        
     def generate_cloud_init_yaml(self, ssh_key, key_json_content):
         """Generate the cloud-init YAML file"""
         requirements = self.load_requirements()
         
-        # Properly format the key_json_content with proper indentation
         try:
-            # First, ensure the content is valid JSON by parsing and re-stringifying it
-            import json
             key_json_dict = json.loads(key_json_content)
-            formatted_key_json = json.dumps(key_json_dict, indent=6)
-            # Add proper YAML indentation
+            formatted_key_json = json.dumps(key_json_dict, indent=2)
+            # Add proper YAML indentation (2 spaces for YAML standard)
             formatted_key_json = '\n'.join('      ' + line for line in formatted_key_json.splitlines())
         except json.JSONDecodeError:
             raise ValueError("Invalid JSON content in key_json_content")
@@ -65,11 +63,11 @@ class CloudInitGenerator:
         yaml_content = f"""#cloud-config
     users:
     - name: cynthus
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    groups: [admin, users, wheel]
-    ssh_authorized_keys:
-    - {ssh_key}
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        shell: /bin/bash
+        groups: [admin, users, wheel]
+        ssh_authorized_keys:
+        - {ssh_key}
 
     ssh_pwauth: false
 
@@ -78,9 +76,9 @@ class CloudInitGenerator:
 
     write_files:
     - path: /home/cynthus/key.json
-    permissions: '0600'
-    owner: root:root
-    content: |
+        permissions: '0600'
+        owner: root:root
+        content: |
     {formatted_key_json}
 
     packages:
@@ -125,5 +123,4 @@ class CloudInitGenerator:
     - PAYLOAD='{{"ip":"'$PRIVATE_IP'"}}'
     - curl -X POST "http://10.150.0.36:5000/run" -H "Content-Type: application/json" -d "$PAYLOAD"
     """
-
         return yaml_content
