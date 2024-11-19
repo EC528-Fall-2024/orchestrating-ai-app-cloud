@@ -85,6 +85,103 @@ def handle_bucket_creation(cloud_event):
         data = cloud_event.data
         logger.info(f"Received event data: {data}")
         
+        # Add new condition to check for compute instance death
+        if isinstance(data, dict) and data.get('jsonPayload', {}).get('event_type') == 'compute.instances.stop':
+            instance_name = data.get('resource', {}).get('labels', {}).get('instance_name', '')
+            if instance_name.startswith('cynthus-compute-instance-'):
+                user_id = instance_name.split('-')[-1]
+                
+                connection = get_db_connection()
+                try:
+                    cursor = connection.cursor(dictionary=True)
+                    # Get the latest active record for this compute instance
+                    cursor.execute("""
+                        SELECT * FROM logs 
+                        WHERE compute_instance = %s 
+                        AND state = 'ACTIVE'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """, (instance_name,))
+                    
+                    existing_record = cursor.fetchone()
+                    if existing_record:
+                        # Insert new record with DEAD state
+                        cursor.execute("""
+                            INSERT INTO logs (
+                                run_id, user_id, path_to_data, path_to_src, 
+                                path_to_output, state, compute_instance
+                            )
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            existing_record['run_id'],
+                            existing_record['user_id'],
+                            existing_record['path_to_data'],
+                            existing_record['path_to_src'],
+                            existing_record['path_to_output'],
+                            'DEAD',
+                            existing_record['compute_instance']
+                        ))
+                        connection.commit()
+                        logger.info(f"Created new DEAD record for compute instance {instance_name}")
+                        return
+                finally:
+                    if connection:
+                        connection.close()
+
+        # Check if this is a file upload event
+        if isinstance(data, dict) and 'name' in data and data.get('bucket', '').startswith('output-user-bucket-'):
+            # This is a file upload to an output bucket
+            output_bucket_name = data.get('bucket')
+            user_bucket_name = output_bucket_name.replace('output-', '')
+            user_id = user_bucket_name.split('-')[2]
+
+            # Get the existing record to copy its data
+            connection = get_db_connection()
+            try:
+                cursor = connection.cursor(dictionary=True)
+                cursor.execute("""
+                    SELECT * FROM logs 
+                    WHERE user_id = %s 
+                    AND path_to_output = %s
+                    AND state = 'DEPLOYING'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (
+                    user_id,
+                    f"gs://{output_bucket_name}/"
+                ))
+                
+                existing_record = cursor.fetchone()
+                if existing_record:
+                    # Insert new record with ACTIVE state
+                    cursor.execute("""
+                        INSERT INTO logs (
+                            run_id, user_id, path_to_data, path_to_src, 
+                            path_to_output, state, compute_instance
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        existing_record['run_id'],
+                        existing_record['user_id'],
+                        existing_record['path_to_data'],
+                        existing_record['path_to_src'],
+                        existing_record['path_to_output'],
+                        'ACTIVE',
+                        existing_record['compute_instance']
+                    ))
+
+                connection.commit()
+                cursor.close()
+                logger.info(f"Created new ACTIVE record for user {user_id}")
+                return
+
+            except Exception as e:
+                logger.error(f"Database error: {e}")
+                raise
+            finally:
+                if connection:
+                    connection.close()
+
         # For Audit Log events, the data will be in the protoPayload
         if isinstance(data, dict) and 'protoPayload' in data:
             resource_name = data['protoPayload'].get('resourceName', '')
