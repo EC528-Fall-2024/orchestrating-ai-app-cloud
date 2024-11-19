@@ -2,6 +2,7 @@ from google.cloud import storage
 import os
 import functions_framework
 from urllib.parse import urlparse
+import subprocess
 import json
 from pathlib import Path
 from typing import Tuple, Dict, Any
@@ -22,8 +23,30 @@ class DatasetDownloader:
             raise ValueError(f"Unsupported platform: {platform}")
 
     def _download_kaggle(self, dataset_name: str, destination_path: str) -> None:
-        """Placeholder for Kaggle download functionality."""
-        raise NotImplementedError("Kaggle download functionality is not implemented yet")
+        """Download dataset from Kaggle using kaggle CLI."""
+        if 'kaggle' not in self.credentials or not all(k in self.credentials['kaggle'] for k in ['username', 'key']):
+            raise ValueError("Missing Kaggle credentials (username and key)")
+
+        try:
+            # Set Kaggle API credentials
+            os.makedirs(os.path.expanduser('~/.kaggle'), exist_ok=True)
+            kaggle_config_path = os.path.expanduser('~/.kaggle/kaggle.json')
+            with open(kaggle_config_path, 'w') as f:
+                json.dump(self.credentials['kaggle'], f)
+            os.chmod(kaggle_config_path, 0o600)
+            
+            # Download dataset using kaggle CLI
+            subprocess.run(
+                [
+                    'kaggle', 'datasets', 'download', '-d', dataset_name, 
+                    '--path', destination_path, '--unzip'
+                ],
+                check=True
+            )
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"Kaggle download failed: {str(e)}")
+        except Exception as e:
+            raise Exception(f"An error occurred while downloading Kaggle dataset: {str(e)}")
 
     def _download_huggingface(self, dataset_name: str, destination_path: str) -> None:
         """Download dataset from Hugging Face using datasets library."""
