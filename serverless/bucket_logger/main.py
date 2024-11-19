@@ -85,155 +85,51 @@ def get_next_run_id(cursor, user_id):
         WHERE user_id = %s
     """, (user_id,))
     last_run_id = cursor.fetchone()[0]
-    return '1' if last_run_id is None else str(last_run_id + 1)
+    return '0' if last_run_id is None else str(last_run_id + 1)
 
 @functions_framework.cloud_event
 def handle_bucket_creation(cloud_event):
     """Handle Cloud Storage bucket creation events from Audit Logs"""
     try:
-        # Get the event data
         data = cloud_event.data
         logger.info(f"Received event data: {data}")
-        
-        # Add new condition to check for compute instance death
-        if isinstance(data, dict) and data.get('jsonPayload', {}).get('event_type') == 'compute.instances.stop':
+
+        # Add check for compute instance creation
+        if isinstance(data, dict) and data.get('jsonPayload', {}).get('event_type') == 'compute.instances.insert':
             instance_name = data.get('resource', {}).get('labels', {}).get('instance_name', '')
             if instance_name.startswith('cynthus-compute-instance-'):
                 user_id = instance_name.split('-')[-1]
+                # Check if buckets exist before creating DEPLOYING entry
+                storage_client = storage.Client()
+                bucket_name = f"user-bucket-{user_id}"
+                output_bucket_name = f"output-user-bucket-{user_id}"
                 
-                connection = get_db_connection()
                 try:
-                    cursor = connection.cursor(dictionary=True)
-                    # Get the latest active record for this compute instance
-                    cursor.execute("""
-                        SELECT * FROM logs 
-                        WHERE compute_instance = %s 
-                        AND state = 'ACTIVE'
-                        ORDER BY created_at DESC
-                        LIMIT 1
-                    """, (instance_name,))
-                    
-                    existing_record = cursor.fetchone()
-                    if existing_record:
-                        # Insert new record with DEAD state
-                        cursor.execute("""
-                            INSERT INTO logs (
-                                user_id, run_id, path_to_data, path_to_src, 
-                                path_to_output, compute_instance, state
-                            )
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        """, (
-                            existing_record['user_id'],
-                            existing_record['run_id'],
-                            existing_record['path_to_data'],
-                            existing_record['path_to_src'],
-                            existing_record['path_to_output'],
-                            existing_record['compute_instance'],
-                            'DEAD'
-                        ))
-                        connection.commit()
-                        logger.info(f"Created new DEAD record for compute instance {instance_name}")
-                        return
-                finally:
-                    if connection:
-                        connection.close()
-
-        # Check if this is a file upload event
-        if isinstance(data, dict) and 'name' in data and data.get('bucket', '').startswith('output-user-bucket-'):
-            # This is a file upload to an output bucket
-            output_bucket_name = data.get('bucket')
-            user_bucket_name = output_bucket_name.replace('output-', '')
-            user_id = user_bucket_name.split('-')[2]
-
-            # Get the existing record to copy its data
-            connection = get_db_connection()
-            try:
-                cursor = connection.cursor(dictionary=True)
-                cursor.execute("""
-                    SELECT * FROM logs 
-                    WHERE user_id = %s 
-                    AND path_to_output = %s
-                    AND state = 'DEPLOYING'
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """, (
-                    user_id,
-                    f"gs://{output_bucket_name}/"
-                ))
-                
-                existing_record = cursor.fetchone()
-                if existing_record:
-                    # Insert new record with ACTIVE state
-                    cursor.execute("""
-                        INSERT INTO logs (
-                            user_id, run_id, path_to_data, path_to_src, 
-                            path_to_output, compute_instance, state
-                        )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, (
-                        existing_record['user_id'],
-                        existing_record['run_id'],
-                        existing_record['path_to_data'],
-                        existing_record['path_to_src'],
-                        existing_record['path_to_output'],
-                        existing_record['compute_instance'],
-                        'ACTIVE'
-                    ))
-
-                connection.commit()
-                cursor.close()
-                logger.info(f"Created new ACTIVE record for user {user_id}")
+                    storage_client.get_bucket(bucket_name)
+                    storage_client.get_bucket(output_bucket_name)
+                    # Both buckets exist, create DEPLOYING entry
+                    create_deploying_entry(user_id, bucket_name, output_bucket_name, instance_name)
+                except Exception as e:
+                    logger.info(f"Buckets not ready yet for {user_id}: {e}")
                 return
 
-            except Exception as e:
-                logger.error(f"Database error: {e}")
-                raise
-            finally:
-                if connection:
-                    connection.close()
-
-        # For Audit Log events, the data will be in the protoPayload
+        # For bucket creation events, modify the existing logic
         if isinstance(data, dict) and 'protoPayload' in data:
             resource_name = data['protoPayload'].get('resourceName', '')
-            logger.info(f"Resource name from audit log: {resource_name}")
             bucket_name = resource_name.split('/')[-1] if resource_name else ''
-        else:
-            logger.error("Invalid event format")
-            return
-
-        if not bucket_name.startswith('user-bucket-'):
-            logger.info(f"Skipping non-user bucket: {bucket_name}")
-            return
-
-        parts = bucket_name.split('-')
-        if len(parts) >= 3:
-            user_id = parts[2]
-        else:
-            logger.error(f"Invalid bucket name format: {bucket_name}")
-            return
-
-        connection = get_db_connection()
-        try:
-            cursor = connection.cursor()
-            run_id = get_next_run_id(cursor, user_id)
-            compute_instance_name = f"cynthus-compute-instance-{user_id}"
-
-            # Check for output bucket
-            output_bucket_name = f"output-{bucket_name}"
-            storage_client = storage.Client()
             
-            try:
-                # Wait for output bucket to exist
-                output_bucket_exists = False
+            if bucket_name.startswith('user-bucket-'):
+                user_id = bucket_name.split('-')[2]
+                output_bucket_name = f"output-{bucket_name}"
+                compute_instance_name = f"cynthus-compute-instance-{user_id}"
+                
+                # Check if both buckets and compute instance exist
+                storage_client = storage.Client()
                 try:
+                    storage_client.get_bucket(bucket_name)
                     storage_client.get_bucket(output_bucket_name)
-                    output_bucket_exists = True
-                    logger.info(f"Output bucket {output_bucket_name} exists")
-                except Exception as e:
-                    logger.info(f"Output bucket {output_bucket_name} does not exist yet")
-                    return
-
-                if output_bucket_exists:
+                    
+                    # Create required paths
                     bucket = storage_client.get_bucket(bucket_name)
                     data_path_blob = bucket.blob('data/')
                     src_path_blob = bucket.blob('src/')
@@ -242,48 +138,41 @@ def handle_bucket_creation(cloud_event):
                         data_path_blob.upload_from_string('')
                     if not src_path_blob.exists():
                         src_path_blob.upload_from_string('')
-                        
-                    logger.info("Required paths exist or have been created")
-
-                    # Connect to database and insert record
-                    connection = get_db_connection()
-                    try:
-                        cursor = connection.cursor()
-                        cursor.execute("""
-                            INSERT INTO logs (
-                                user_id, run_id, path_to_data, path_to_src, 
-                                path_to_output, compute_instance, state
-                            )
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        """, (
-                            user_id,
-                            run_id,
-                            f"gs://{bucket_name}/data/",
-                            f"gs://{bucket_name}/src/",
-                            f"gs://{output_bucket_name}/",
-                            compute_instance_name,
-                            'DEPLOYING'
-                        ))
-
-                        connection.commit()
-                        cursor.close()
-                        logger.info(f"Successfully processed bucket creation for {bucket_name}")
-
-                    except Exception as e:
-                        logger.error(f"Database error: {e}")
-                        raise
-                    finally:
-                        if connection:
-                            connection.close()
-
-            except Exception as e:
-                logger.error(f"Error checking/creating paths: {e}")
-                raise
-
-        except Exception as e:
-            logger.error(f"Database error: {e}")
-            raise
+                    
+                    # Check if compute instance exists (you'll need to implement this)
+                    # If everything exists, create DEPLOYING entry
+                    create_deploying_entry(user_id, bucket_name, output_bucket_name, compute_instance_name)
+                except Exception as e:
+                    logger.info(f"Resources not ready yet for {user_id}: {e}")
 
     except Exception as e:
         logger.error(f"Error processing event: {e}")
         raise
+
+def create_deploying_entry(user_id, bucket_name, output_bucket_name, compute_instance_name):
+    """Helper function to create DEPLOYING entry"""
+    connection = get_db_connection()
+    try:
+        cursor = connection.cursor()
+        run_id = get_next_run_id(cursor, user_id)
+        
+        cursor.execute("""
+            INSERT INTO logs (
+                user_id, run_id, path_to_data, path_to_src, 
+                path_to_output, compute_instance, state
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            user_id,
+            run_id,
+            f"gs://{bucket_name}/data/",
+            f"gs://{bucket_name}/src/",
+            f"gs://{output_bucket_name}/",
+            compute_instance_name,
+            'DEPLOYING'
+        ))
+        connection.commit()
+        logger.info(f"Created DEPLOYING entry for user {user_id}")
+    finally:
+        if connection:
+            connection.close()
