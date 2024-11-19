@@ -77,6 +77,9 @@ packages:
 - jq
 
 runcmd:
+- curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+- echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+- sudo apt-get update && sudo apt-get install -y google-cloud-cli
 - until dpkg -l | grep -q python3; do sleep 5; done
 - until command -v python3 >/dev/null 2>&1; do sleep 5; done
 - mkdir -p /home/cynthus/venv
@@ -87,8 +90,11 @@ runcmd:
 - chown -R cynthus:cynthus /home/cynthus/venv 
 - echo "Python venv setup complete" > /home/cynthus/venv_setup_complete
 - chown cynthus:cynthus /home/cynthus/venv_setup_complete
+- mkdir -p /home/cynthus/.config/gcloud/logs
+- chown -R cynthus:cynthus /home/cynthus/.config
+- sudo chmod 700 /home/cynthus/.config/gcloud
 - sudo chmod a+rwx /home/cynthus/key.json
-- sudo su - cynthus -c "sudo gcloud auth activate-service-account --key-file=/home/cynthus/key.json"
+- sudo -u cynthus gcloud auth activate-service-account --key-file=/home/cynthus/key.json
 - mkdir -p /home/cynthus/workspace
 - sudo gsutil cp -r gs://{self.bucket_name}/src/* /home/cynthus/workspace
 - sudo chown -R cynthus:cynthus /home/cynthus/workspace
@@ -96,10 +102,13 @@ runcmd:
 - echo "Uploading workspace results to output bucket..."
 - sudo gsutil cp -r /home/cynthus/workspace/* gs://output-{self.bucket_name}/workspace/
 - echo "Workspace upload complete" > /home/cynthus/upload_complete
-- CONTROL_PRIV_IP=$(curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-identity-token)" https://get-private-ip-531274461726.us-central1.run.app | jq -r '.private_ip')
-- PRIVATE_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/ip)
-- PAYLOAD='{"ip":"'$PRIVATE_IP'"}'
-- curl -X POST "http://$CONTROL_PRIV_IP/run" -H "Content-Type: application/json" -d "$PAYLOAD"
+- |
+  sudo -u cynthus bash -c '
+  CONTROL_PRIV_IP=$(curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-identity-token)" https://get-private-ip-531274461726.us-central1.run.app | jq -r .private_ip)
+  PRIVATE_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/ip)
+  PAYLOAD=$(jq -n --arg ip "$PRIVATE_IP" '\''{"ip":$ip}'\'')
+  curl -X POST "http://$CONTROL_PRIV_IP:5000/run" -H "Content-Type: application/json" -d "$PAYLOAD"
+  '
 
 """
 
