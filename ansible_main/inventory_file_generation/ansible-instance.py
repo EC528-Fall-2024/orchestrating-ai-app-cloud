@@ -46,6 +46,9 @@ async def run_ansible_playbook(request: PlaybookRequest):
                         "ansible_host": ip_address,
                         "ansible_user": USER,
                         "ansible_ssh_private_key_file": PRIVATE_KEY,
+                        "ansible_remote_tmp": "/tmp",
+                        "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null",
+                        "ansible_become": "yes"
                     }
                 }
             }
