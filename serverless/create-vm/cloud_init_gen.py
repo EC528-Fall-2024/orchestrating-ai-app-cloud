@@ -79,6 +79,34 @@ write_files:
     owner: root:root
     content: |
 {formatted_key_json}
+  
+  - path: /etc/kubernetes/cluster-ca.crt
+    permissions: '0644'
+    owner: root:root
+    content: |
+      $${CLUSTER_CA_CERT}
+  
+  - path: /etc/kubernetes/bootstrap.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/bin/bash
+      
+      # Wait for kubelet to be installed
+      until dpkg -l | grep -q kubelet; do sleep 5; done
+      
+      # Join the cluster
+      kubeadm join $${CLUSTER_ENDPOINT} \\
+        --token $${CLUSTER_TOKEN} \\
+        --discovery-token-ca-cert-hash sha256:$(openssl x509 -pubkey -in /etc/kubernetes/cluster-ca.crt | \\
+          openssl rsa -pubin -outform der 2>/dev/null | \\
+          openssl dgst -sha256 -hex | sed 's/^.* //')
+      
+      # Label the node
+      until kubectl --kubeconfig=/etc/kubernetes/kubelet.conf get node $(hostname); do sleep 5; done
+      kubectl --kubeconfig=/etc/kubernetes/kubelet.conf label node $(hostname) \\
+        instance-uuid=$${INSTANCE_UUID} \\
+        node-role.kubernetes.io/worker=true
 
 packages:
   - python3-pip
@@ -100,27 +128,32 @@ packages:
   - jq
 
 runcmd:
-  - until dpkg -l | grep -q python3; do sleep 5; done
-  - until command -v python3 >/dev/null 2>&1; do sleep 5; done
+  # Install Docker
+  - curl -fsSL https://get.docker.com | sh
+  
+  # Install Kubernetes components
+  - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+  - echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
+  - apt-get update
+  - apt-get install -y kubelet kubeadm kubectl
+  - systemctl enable kubelet
+  
+  # Join the cluster
+  - bash /etc/kubernetes/bootstrap.sh
+  
+  # Your existing Python setup and workspace configuration
   - mkdir -p /home/cynthus/venv
   - python3 -m venv /home/cynthus/venv
   - chown -R cynthus:cynthus /home/cynthus/venv
   - /home/cynthus/venv/bin/pip install --upgrade pip
   - /home/cynthus/venv/bin/pip install {' '.join(requirements)}
-  - chown -R cynthus:cynthus /home/cynthus/venv 
-  - echo "Python venv setup complete" > /home/cynthus/venv_setup_complete
-  - chown cynthus:cynthus /home/cynthus/venv_setup_complete
+  - sudo chown -R cynthus:cynthus /home/cynthus/venv 
   - sudo chmod a+rwx /home/cynthus/key.json
   - sudo su - cynthus -c "sudo gcloud auth activate-service-account --key-file=/home/cynthus/key.json"
   - mkdir -p /home/cynthus/workspace
   - sudo gsutil cp -r gs://{self.bucket_name}/src/* /home/cynthus/workspace
   - sudo chown -R cynthus:cynthus /home/cynthus/workspace
-  - cd /home/cynthus/workspace && for f in *.py; do if [ -f "$f" ]; then /home/cynthus/venv/bin/python "$f"; fi; done
-  - echo "Uploading workspace results to output bucket..."
-  - sudo gsutil cp -r /home/cynthus/workspace/* gs://output-{self.bucket_name}/workspace/
-  - echo "Workspace upload complete" > /home/cynthus/upload_complete
 """
-
         print("YAML content generated")
         
         return yaml_content
