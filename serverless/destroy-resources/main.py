@@ -60,12 +60,14 @@ def destroy_resources(request):
             
             bucket_deleted = delete_user_bucket(user_id)
             terraform_state_deleted = delete_terraform_state(user_id)
+            output_bucket_deleted = delete_output_bucket(user_id)
 
             response = {
                 'message': 'Resources destroyed successfully',
                 'workspace': workspace_name,
                 'bucket_deleted': bucket_deleted,
-                'terraform_state_deleted': terraform_state_deleted
+                'terraform_state_deleted': terraform_state_deleted,
+                'output_bucket_deleted': output_bucket_deleted
             }
             
             return response
@@ -198,6 +200,25 @@ def delete_user_bucket(user_id):
         return True
     except Exception as e:
         print(f"Error deleting bucket: {str(e)}")
+        return False
+    
+def delete_output_bucket(user_id):
+    """Delete the user's output GCS bucket"""
+    try:
+        storage_client = storage.Client()
+        bucket_name = f"output-user-bucket-{user_id}"
+        bucket = storage_client.bucket(bucket_name)
+        
+        # Delete all objects in the bucket first
+        blobs = bucket.list_blobs()
+        for blob in blobs:
+            blob.delete()
+            
+        # Delete the bucket itself
+        bucket.delete()
+        return True
+    except Exception as e:
+        print(f"Error deleting output bucket: {str(e)}")
         return False
     
 def delete_terraform_state(user_id):
