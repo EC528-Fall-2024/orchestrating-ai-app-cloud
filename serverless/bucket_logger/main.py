@@ -89,29 +89,24 @@ def handle_bucket_creation(cloud_event):
         if isinstance(data, dict) and 'protoPayload' in data:
             resource_name = data['protoPayload'].get('resourceName', '')
             logger.info(f"Resource name from audit log: {resource_name}")
-            # Extract bucket name from resource name
             bucket_name = resource_name.split('/')[-1] if resource_name else ''
         else:
             logger.error("Invalid event format")
             return
 
-        logger.info(f"Processing bucket creation: {bucket_name}")
-
-        # Only process user buckets
         if not bucket_name.startswith('user-bucket-'):
             logger.info(f"Skipping non-user bucket: {bucket_name}")
             return
 
-        # Extract user_id from bucket name
         parts = bucket_name.split('-')
         if len(parts) >= 3:
-            user_id = parts[2]  # Remove 'user_' prefix
+            user_id = parts[2]
         else:
             logger.error(f"Invalid bucket name format: {bucket_name}")
             return
 
-        # Generate run_id without 'run_' prefix
         run_id = str(uuid.uuid4())[:8]
+        compute_instance_name = f"cynthus-compute-instance-{user_id}"
 
         # Check for output bucket
         output_bucket_name = f"output-{bucket_name}"
@@ -126,15 +121,13 @@ def handle_bucket_creation(cloud_event):
                 logger.info(f"Output bucket {output_bucket_name} exists")
             except Exception as e:
                 logger.info(f"Output bucket {output_bucket_name} does not exist yet")
-                return  # Exit and wait for output bucket to be created
+                return
 
-            # Only proceed if output bucket exists
             if output_bucket_exists:
                 bucket = storage_client.get_bucket(bucket_name)
                 data_path_blob = bucket.blob('data/')
                 src_path_blob = bucket.blob('src/')
                 
-                # Create the paths if they don't exist
                 if not data_path_blob.exists():
                     data_path_blob.upload_from_string('')
                 if not src_path_blob.exists():
@@ -145,18 +138,21 @@ def handle_bucket_creation(cloud_event):
                 # Connect to database and insert record
                 connection = get_db_connection()
                 try:
-                    # Insert only DEPLOYING state
                     cursor = connection.cursor()
                     cursor.execute("""
-                        INSERT INTO logs (run_id, user_id, path_to_data, path_to_src, path_to_output, state)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        INSERT INTO logs (
+                            run_id, user_id, path_to_data, path_to_src, 
+                            path_to_output, state, compute_instance
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """, (
                         run_id,
                         user_id,
                         f"gs://{bucket_name}/data/",
                         f"gs://{bucket_name}/src/",
                         f"gs://{output_bucket_name}/",
-                        'DEPLOYING'
+                        'DEPLOYING',
+                        compute_instance_name
                     ))
 
                     connection.commit()

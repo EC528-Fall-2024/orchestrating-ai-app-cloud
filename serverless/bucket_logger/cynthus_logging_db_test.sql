@@ -12,6 +12,7 @@ CREATE TABLE logs (
     path_to_output VARCHAR(255) NOT NULL,
     state VARCHAR(20) NOT NULL,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    compute_instance VARCHAR(255),
     CONSTRAINT valid_state CHECK (state IN ('DEPLOYING', 'ACTIVE', 'DEAD'))
 );
 
