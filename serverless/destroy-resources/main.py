@@ -59,15 +59,14 @@ def destroy_resources(request):
             )
             
             bucket_deleted = delete_user_bucket(user_id)
-            
+            terraform_state_deleted = delete_terraform_state(user_id)
+
             response = {
                 'message': 'Resources destroyed successfully',
                 'workspace': workspace_name,
-                'bucket_deleted': bucket_deleted
+                'bucket_deleted': bucket_deleted,
+                'terraform_state_deleted': terraform_state_deleted
             }
-            
-            if not bucket_deleted:
-                response['warning'] = 'Terraform resources were destroyed, but there was an issue deleting the user bucket'
             
             return response
             
@@ -199,4 +198,21 @@ def delete_user_bucket(user_id):
         return True
     except Exception as e:
         print(f"Error deleting bucket: {str(e)}")
+        return False
+    
+def delete_terraform_state(user_id):
+    """Delete the user's Terraform state files"""
+    try:
+        storage_client = storage.Client()
+        bucket_name = f"terraform-state-cynthus"
+        bucket = storage_client.bucket(bucket_name)
+        
+        prefix = f"terraform/state/{user_id}"
+        
+        blobs = bucket.list_blobs(prefix=prefix)
+        for blob in blobs:
+            blob.delete()
+        return True
+    except Exception as e:
+        print(f"Error deleting Terraform state: {str(e)}")
         return False
