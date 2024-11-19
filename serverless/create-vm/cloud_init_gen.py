@@ -34,7 +34,8 @@ class CloudInitGenerator:
         requirements = self.load_requirements()
         
         formatted_key_json = '\n'.join('      ' + line for line in key_json_content.splitlines())
-
+# make sure that the activate service account has Cloud Run Invoker role
+# make sure jq package is installed 
         yaml_content = f"""#cloud-config
 users:
 - name: cynthus
@@ -73,6 +74,7 @@ packages:
 - software-properties-common
 - ca-certificates
 - apt-transport-https
+- jq
 
 runcmd:
 - until dpkg -l | grep -q python3; do sleep 5; done
@@ -94,9 +96,10 @@ runcmd:
 - echo "Uploading workspace results to output bucket..."
 - sudo gsutil cp -r /home/cynthus/workspace/* gs://output-{self.bucket_name}/workspace/
 - echo "Workspace upload complete" > /home/cynthus/upload_complete
+- CONTROL_PRIV_IP=$(curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-identity-token)" https://get-private-ip-531274461726.us-central1.run.app | jq -r '.private_ip')
 - PRIVATE_IP=$(curl -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/ip)
 - PAYLOAD='{"ip":"'$PRIVATE_IP'"}'
-- curl -X POST "http://10.150.0.36:5000/run" -H "Content-Type: application/json" -d "$PAYLOAD"
+- curl -X POST "http://$CONTROL_PRIV_IP/run" -H "Content-Type: application/json" -d "$PAYLOAD"
 
 """
 
