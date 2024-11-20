@@ -99,18 +99,6 @@ class GCSUploader:
     def __init__(self, bucket_name: str):
         self.storage_client = storage.Client()
         self.bucket = self.storage_client.bucket(bucket_name)
-
-    # def upload_directory(self, source_dir: str, _: str) -> list:
-    #     """Upload directory contents to GCS bucket root."""
-    #     uploaded_files = []
-    #     for root, _, files in os.walk(source_dir):
-    #         for file in files:
-    #             local_path = os.path.join(root, file)
-    #             # Use just the filename for the blob path (root directory)
-    #             blob = self.bucket.blob(file)
-    #             blob.upload_from_filename(local_path)
-    #             uploaded_files.append(file)
-    #     return uploaded_files
     
     def upload_directory(self, source_dir: str, _: str) -> list:
         """Upload directory contents to GCS bucket root."""
@@ -126,65 +114,6 @@ class GCSUploader:
                 blob.upload_from_filename(local_path)
                 uploaded_files.append(file)
         return uploaded_files
-
-
-# @functions_framework.http
-# def download_dataset(request):
-#     """HTTP Cloud Function."""
-#     request_json = request.get_json(silent=True)
-    
-#     if not request_json:
-#         return {'status': 'error', 'message': 'No JSON data received'}, 400
-    
-#     dataset_url = request_json.get('dataset_url')
-#     bucket_name = request_json.get('bucket_name')
-#     credentials = request_json.get('credentials')
-    
-#     if not all([dataset_url, bucket_name, credentials]):
-#         return {'status': 'error', 'message': 'Missing required parameters'}, 400
-    
-#     temp_dir = Path('/tmp/dataset')
-    
-#     try:
-#         # Parse URL
-#         parser = URLParser()
-#         platform, dataset_name = parser.parse_url(dataset_url)
-        
-#         # Create temp directory
-#         temp_dir.mkdir(parents=True, exist_ok=True)
-        
-#         # Download dataset
-#         downloader = DatasetDownloader(credentials)
-#         try:
-#             downloader.download(platform, dataset_name, str(temp_dir))
-#         except NotImplementedError:
-#             return {
-#                 'status': 'error',
-#                 'message': 'Kaggle functionality is not implemented yet. Please use Hugging Face datasets.'
-#             }, 400
-        
-#         # Upload to GCS
-#         uploader = GCSUploader(bucket_name)
-#         uploaded_files = uploader.upload_directory(str(temp_dir), dataset_name)
-        
-#         return {
-#             'status': 'success',
-#             'message': f'Successfully downloaded {dataset_name} and uploaded files to root of bucket {bucket_name}',
-#             'platform': platform,
-#             'files': uploaded_files
-#         }, 200
-        
-#     except ValueError as ve:
-#         return {'status': 'error', 'message': str(ve)}, 400
-#     except Exception as e:
-#         return {'status': 'error', 'message': str(e)}, 500
-#     finally:
-#     # Cleanup
-#         if temp_dir.exists():
-#             try:
-#                 shutil.rmtree(temp_dir)
-#             except Exception as e:
-#                 print(f"Error during cleanup: {e}")
 
 @functions_framework.http
 def download_dataset(request):
