@@ -1,7 +1,10 @@
 # Terraform main configuration
 MAIN_TF = '''
 terraform {
-  backend "gcs" {}
+  backend "gcs" {
+    bucket = "terraform-state-cynthus"
+    prefix = "terraform/state/${var.user_id}/terraform.tfstate"
+  }
 }
 
 provider "google" {

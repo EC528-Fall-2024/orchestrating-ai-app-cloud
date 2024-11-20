@@ -112,6 +112,7 @@ variable "firewall_ports" {
 variable "cloud_init_config" {
   description = "Path to cloud-init configuration file"
   type        = string
+  default     = "" # Make it optional by setting default to empty string
 }
 
 '''

@@ -1,21 +1,21 @@
 steps:
   # Building the docker image
   - name: "gcr.io/cloud-builders/docker"
-    args: ["build", "-t", "gcr.io/$PROJECT_ID/create-vm", "."]
+    args: ["build", "-t", "gcr.io/$PROJECT_ID/destroy-resources", "."]
 
   # Pushing the docker image to GCR
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/create-vm"]
+    args: ["push", "gcr.io/$PROJECT_ID/destroy-resources"]
 
-  # Deploying to Cloud Run
+  # Deploying the function to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       - 'run'
       - 'deploy'
-      - 'create-vm'
+      - 'destroy-resources'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/create-vm'
+      - 'gcr.io/$PROJECT_ID/destroy-resources'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -34,4 +34,5 @@ steps:
       - 'all'
 
 images:
-  - 'gcr.io/$PROJECT_ID/create-vm'
+  - 'gcr.io/$PROJECT_ID/destroy-resources'
+
