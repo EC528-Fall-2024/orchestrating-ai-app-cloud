@@ -7,6 +7,7 @@ from google.cloud import storage
 import mysql.connector
 from mysql.connector import Error
 import logging
+from google.cloud import compute_v1
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -87,6 +88,20 @@ def get_next_run_id(cursor, user_id):
     last_run_id = cursor.fetchone()[0]
     return '0' if last_run_id is None else str(last_run_id + 1)
 
+def check_compute_instance_exists(project_id, zone, instance_name):
+    """Check if a compute instance exists and is running"""
+    try:
+        instance_client = compute_v1.InstancesClient()
+        instance = instance_client.get(
+            project=project_id,
+            zone=zone,
+            instance=instance_name
+        )
+        return instance.status == "RUNNING"
+    except Exception as e:
+        logger.info(f"Compute instance check failed: {e}")
+        return False
+
 @functions_framework.cloud_event
 def handle_bucket_creation(cloud_event):
     """Handle Cloud Storage bucket creation events from Audit Logs"""
@@ -94,26 +109,35 @@ def handle_bucket_creation(cloud_event):
         data = cloud_event.data
         logger.info(f"Received event data: {data}")
 
-        # Add check for compute instance creation
+        # Get project_id and zone from environment variables
+        project_id = os.getenv("PROJECT_ID")
+        zone = os.getenv("COMPUTE_ZONE", "us-central1-a")
+
+        if not project_id:
+            raise ValueError("PROJECT_ID environment variable is required")
+
+        # Modify the compute instance creation check
         if isinstance(data, dict) and data.get('jsonPayload', {}).get('event_type') == 'compute.instances.insert':
             instance_name = data.get('resource', {}).get('labels', {}).get('instance_name', '')
             if instance_name.startswith('cynthus-compute-instance-'):
                 user_id = instance_name.split('-')[-1]
-                # Check if buckets exist before creating DEPLOYING entry
                 storage_client = storage.Client()
                 bucket_name = f"user-bucket-{user_id}"
                 output_bucket_name = f"output-user-bucket-{user_id}"
                 
                 try:
+                    # Check all required resources exist
                     storage_client.get_bucket(bucket_name)
                     storage_client.get_bucket(output_bucket_name)
-                    # Both buckets exist, create DEPLOYING entry
-                    create_deploying_entry(user_id, bucket_name, output_bucket_name, instance_name)
+                    if check_compute_instance_exists(project_id, zone, instance_name):
+                        create_deploying_entry(user_id, bucket_name, output_bucket_name, instance_name)
+                    else:
+                        logger.info(f"Compute instance {instance_name} not running yet")
                 except Exception as e:
-                    logger.info(f"Buckets not ready yet for {user_id}: {e}")
+                    logger.info(f"Resources not ready yet for {user_id}: {e}")
                 return
 
-        # For bucket creation events, modify the existing logic
+        # Modify the bucket creation check
         if isinstance(data, dict) and 'protoPayload' in data:
             resource_name = data['protoPayload'].get('resourceName', '')
             bucket_name = resource_name.split('/')[-1] if resource_name else ''
@@ -123,9 +147,9 @@ def handle_bucket_creation(cloud_event):
                 output_bucket_name = f"output-{bucket_name}"
                 compute_instance_name = f"cynthus-compute-instance-{user_id}"
                 
-                # Check if both buckets and compute instance exist
-                storage_client = storage.Client()
                 try:
+                    # Check all required resources exist
+                    storage_client = storage.Client()
                     storage_client.get_bucket(bucket_name)
                     storage_client.get_bucket(output_bucket_name)
                     
@@ -139,9 +163,11 @@ def handle_bucket_creation(cloud_event):
                     if not src_path_blob.exists():
                         src_path_blob.upload_from_string('')
                     
-                    # Check if compute instance exists (you'll need to implement this)
-                    # If everything exists, create DEPLOYING entry
-                    create_deploying_entry(user_id, bucket_name, output_bucket_name, compute_instance_name)
+                    # Check if compute instance exists and is running
+                    if check_compute_instance_exists(project_id, zone, compute_instance_name):
+                        create_deploying_entry(user_id, bucket_name, output_bucket_name, compute_instance_name)
+                    else:
+                        logger.info(f"Compute instance {compute_instance_name} not running yet")
                 except Exception as e:
                     logger.info(f"Resources not ready yet for {user_id}: {e}")
 
