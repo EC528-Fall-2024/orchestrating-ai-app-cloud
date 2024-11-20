@@ -41,7 +41,9 @@ def external_data():
 
     fire_token, uid = check_authentication()
 
-    bucket = "user-bucket-"+ uid
+    bucket = "user-bucket-"+ uid.lower()
+
+    print(bucket)
 
     link = input("URL to the dataset: ")
 
