@@ -193,8 +193,8 @@ def cli_entry_point():
     
     # TEST: Json creation and update for direct datapull from website
 
-    parser_json = subparsers.add_parser(
-        'create-json', help='Grab a dataset from external source')
+    parser_external_data = subparsers.add_parser(
+        'external-data', help='Grab a dataset from external source')
 
     # Set-up Kaggle Command
 
@@ -258,8 +258,8 @@ def cli_entry_point():
     elif args.command == 'datapull':
         project_datapull(args.location_type, args.location)
 
-    elif args.command =='create-json':
-        create_json_template()
+    elif args.command =='external-data':
+        external_data()
     
     elif args.command == 'setup-kaggle':
         setup_kaggle()
