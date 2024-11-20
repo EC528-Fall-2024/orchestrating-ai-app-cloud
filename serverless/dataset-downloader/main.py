@@ -101,7 +101,7 @@ class GCSUploader:
         self.bucket = self.storage_client.bucket(bucket_name)
     
     def upload_directory(self, source_dir: str, dataset_name: str) -> list:
-        """Upload directory contents to GCS bucket under data/dataset_name/."""
+        """Upload directory contents to GCS bucket under data/."""
         uploaded_files = []
         allowed_extensions = {'.csv', '.json', '.txt', '.jpg', '.png'}
         for root, _, files in os.walk(source_dir):
@@ -110,8 +110,8 @@ class GCSUploader:
                     continue
                 
                 local_path = os.path.join(root, file)
-                # Create GCS path: data/dataset_name/file
-                gcs_path = f"data/{dataset_name}/{file}"
+                # Create GCS path: data/file
+                gcs_path = f"data/{file}"
                 blob = self.bucket.blob(gcs_path)
                 blob.upload_from_filename(local_path)
                 uploaded_files.append(gcs_path)
@@ -162,7 +162,7 @@ def download_dataset(request):
         
         return {
             'status': 'success',
-            'message': f'Successfully downloaded {dataset_name} and uploaded files to data/{dataset_name}/ in bucket {bucket_name}',
+            'message': f'Successfully downloaded {dataset_name} and uploaded files to data/ in bucket {bucket_name}',
             'platform': platform,
             'files': uploaded_files
         }, 200
