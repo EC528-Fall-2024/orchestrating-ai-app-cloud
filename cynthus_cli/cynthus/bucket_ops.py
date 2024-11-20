@@ -1,5 +1,6 @@
 import requests
 from firebase_auth import check_authentication
+from pathlib import Path
 
 FUNCTION_URL = 'https://us-central1-cynthusgcp-438617.cloudfunctions.net/bucket_operations'
 
@@ -91,15 +92,31 @@ def generate_download_url(token: str, file_path: str):
         raise
 
 
-def bucket_operations(src_file: str, config_file: str):
+def do_bucket_operations(directory_path: str):
     try:
         token, _ = check_authentication()
+
         create_bucket(token, "create")
         create_bucket(token, "create_output")
-        upload_file(token, src_file, f"src/{src_file}")
-        upload_file(token, config_file, config_file)
+
+        directory = Path(directory_path)
+        if not directory.is_dir():
+            raise ValueError(f"{directory_path} is not a valid directory")
+
+        for file in directory.rglob('*'):
+            if file.is_file():
+                relative_path = file.relative_to(directory)
+                upload_file(token, str(file), str(relative_path))
+
+        # Verify and upload 'config.json' explicitly
+        config_file = directory / "config.json"
+        if not config_file.exists():
+            raise FileNotFoundError(
+                f"'config.json' not found in directory {directory_path}")
+        upload_file(token, str(config_file), "config.json")
+
+        # Generate requirements after all uploads are completed
         generate_requirements(token)
-        # read_file(token, f"src/{src_file}")
-        # generate_download_url(token, f"src/{src_file}")
+
     except Exception as e:
-        print("Error in test_bucket_operations:", e)
+        print("Error in do_bucket_operations:", e)
