@@ -13,7 +13,7 @@ def download_dataset_ex(config):
         dict: Response from the API
     """
     # API endpoint
-    url = "https://dataset-downloader-531274461726.us-central1.run.app"
+    url = "https://us-central1-cynthusgcp-438617.cloudfunctions.net/dataset-downloader"
     
     # Headers for the request
     headers = {
