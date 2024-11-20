@@ -29,6 +29,10 @@ class DatasetDownloader:
             raise ValueError("Missing Kaggle credentials (username and key)")
 
         try:
+            # Create a temporary directory for initial download
+            temp_download_dir = os.path.join(destination_path, '_temp_kaggle')
+            os.makedirs(temp_download_dir, exist_ok=True)
+            
             # Set Kaggle API credentials
             os.makedirs(os.path.expanduser('~/.kaggle'), exist_ok=True)
             kaggle_config_path = os.path.expanduser('~/.kaggle/kaggle.json')
@@ -36,14 +40,25 @@ class DatasetDownloader:
                 json.dump(self.credentials['kaggle'], f)
             os.chmod(kaggle_config_path, 0o600)
             
-            # Download dataset using kaggle CLI
+            # Download dataset using kaggle CLI to temp directory
             subprocess.run(
                 [
                     'kaggle', 'datasets', 'download', '-d', dataset_name, 
-                    '--path', destination_path, '--unzip'
+                    '--path', temp_download_dir, '--unzip'
                 ],
                 check=True
             )
+
+            # Move all files from subdirectories to destination_path
+            for root, _, files in os.walk(temp_download_dir):
+                for file in files:
+                    src_path = os.path.join(root, file)
+                    dst_path = os.path.join(destination_path, file)
+                    shutil.move(src_path, dst_path)
+
+            # Clean up temp directory
+            shutil.rmtree(temp_download_dir)
+            
         except subprocess.CalledProcessError as e:
             raise Exception(f"Kaggle download failed: {str(e)}")
         except Exception as e:
