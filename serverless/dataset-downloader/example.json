@@ -1,0 +1,13 @@
+{
+    "dataset_url": "",
+    "bucket_name": "your-gcs-bucket",
+    "credentials": {
+        "huggingface": {
+            "token": "your-huggingface-token"
+        },
+        "kaggle": {
+            "username": "your-kaggle-username",
+            "key": "your-kaggle-api-key"
+        }
+    }
+  }

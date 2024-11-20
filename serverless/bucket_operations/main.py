@@ -181,6 +181,22 @@ def upload_file(bucket_name, file_path, file_content, storage_client):
         'path': file_path
     }, 200
 
+# Function updated to show progress of file upload to user
+
+# def upload_file_progress(bucket_name, file_path, file_content, storage_client):
+#     """Upload a file to the bucket"""
+#     bucket = storage_client.bucket(bucket_name)
+#     blob = bucket.blob(file_path)
+    
+#     with open(file_path, 'rb') as f:
+#         blob.upload_from_file(f, progress_bar=True)
+
+#     return {
+#         'message': f'File uploaded successfully to {file_path}',
+#         'path': file_path
+#     }, 200
+
+
 def list_files(bucket_name, storage_client):
     """List all files in the bucket"""
     bucket = storage_client.bucket(bucket_name)

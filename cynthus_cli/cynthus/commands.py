@@ -13,6 +13,7 @@ from .kaggle_funcs import *
 from .terraform_funcs import *
 from .project_setup import *
 from .firebase_auth import *
+from .datapull import *
 from datasets import load_dataset_builder
 # from ...ansible_main.cloud_init import cloud_init_gen
 
@@ -124,7 +125,7 @@ def project_datapull(location_type, location):
 def cli_entry_point():
     
     # From Firebase.py
-    check_authentication()
+    # check_authentication()
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
@@ -190,6 +191,11 @@ def cli_entry_point():
     parser_datapull.add_argument(
         'location', help='The local path or url to pull data from')
     
+    # TEST: Json creation and update for direct datapull from website
+
+    parser_json = subparsers.add_parser(
+        'create-json', help='Grab a dataset from external source')
+
     # Set-up Kaggle Command
 
     parser_setup_kaggle = subparsers.add_parser(
@@ -248,8 +254,13 @@ def cli_entry_point():
     #     project_push(args.image_path, args.registry)
     # elif args.command == 'ssh':
     #     project_ssh(args.ssh_key, args.service)
+
     elif args.command == 'datapull':
         project_datapull(args.location_type, args.location)
+
+    elif args.command =='create-json':
+        create_json_template()
+    
     elif args.command == 'setup-kaggle':
         setup_kaggle()
     elif args.command == 'download-kaggle':
