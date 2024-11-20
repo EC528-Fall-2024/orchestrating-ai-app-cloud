@@ -1,0 +1,6 @@
+functions-framework==3.*
+google-cloud-storage==2.*
+kaggle==1.*
+huggingface-hub==0.*
+datasets==2.*
+pandas==2.*

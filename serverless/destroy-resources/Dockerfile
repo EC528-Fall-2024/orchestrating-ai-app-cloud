@@ -32,4 +32,4 @@ COPY . .
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=True
 
-CMD ["functions-framework", "--target=create_vm"]
+CMD ["functions-framework", "--target=destroy_resources"]

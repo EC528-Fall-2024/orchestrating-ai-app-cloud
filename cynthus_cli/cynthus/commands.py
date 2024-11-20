@@ -13,6 +13,7 @@ from datasets import load_dataset
 from .terraform_funcs import *
 from .project_setup import *
 from .firebase_auth import *
+from .datapull import *
 from datasets import load_dataset_builder
 # from ...ansible_main.cloud_init import cloud_init_gen
 
@@ -193,7 +194,11 @@ def cli_entry_point():
         'location_type', help='local_path or url')
     parser_datapull.add_argument(
         'location', help='The local path or url to pull data from')
+    
+    # Pull external data to a bucket
 
+    parser_external_data = subparsers.add_parser(
+        'external-data', help='Grab a dataset from external source')
     # Set-up Kaggle Command
 
     parser_setup_kaggle = subparsers.add_parser(
@@ -245,6 +250,9 @@ def cli_entry_point():
         project_vm_end()
     elif args.command == 'prepare':
         prepare_project(args.src_path, args.data_path)
+
+    elif args.command =='external-data':
+        external_data()
 
     # elif args.command == 'push':
     #     project_push(args.image_path, args.registry)

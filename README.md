@@ -23,6 +23,7 @@ Sprint Demo Videos:
 - [Sprint 2 Demo](https://drive.google.com/file/d/1r7dno8U-bDXu80lfAFVU6rA1jhGb-X1e/view?usp=sharing)
 - [Sprint 3 Demo](https://drive.google.com/file/d/1eMly8_TVdyiS4ya3N4kQN-CgwZXLV_Ih/view?usp=drive_link)
 - [Sprint 4 Demo](https://drive.google.com/file/d/1AdgprASdOFpZCtCDNqXb6F9QehCVZP5h/view?usp=drive_link)
+- [Sprint 5 Demo](https://drive.google.com/file/d/1y8o_gFfOZSBZpkKAB7xoacds8kDNdQWs/view?usp=sharing)
 
 
 
@@ -31,6 +32,7 @@ Sprint Slides:
 - [Sprint 2 Slides](https://docs.google.com/presentation/d/1mee4V68epsujxqhAZcVs1ev7JTiomgGfhy8vQIwue3M/edit?usp=sharing)
 - [Sprint 3 Slides](https://docs.google.com/presentation/d/14hvVDBF61SQPKwuKxjp6b9_vxLr4BHbKBmncmGk4YH4/edit?usp=sharing)
 - [Sprint 4 Slides](https://docs.google.com/presentation/d/1qjwYTIiLE6tRwIy_jwnmzikNkbKiSh1vVd72R9W0bHg/edit?usp=sharing)
+- [Sprint 5 Slides](https://docs.google.com/presentation/d/1ku1LTP_kWTvcnEp0mIy9HmjLlY67A9Ctv_QcTRNJHqQ/edit?usp=sharing)
 
 
 ** **
