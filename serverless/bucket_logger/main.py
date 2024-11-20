@@ -116,6 +116,31 @@ def handle_bucket_creation(cloud_event):
         if not project_id:
             raise ValueError("PROJECT_ID environment variable is required")
 
+        # Add check for file upload to output bucket
+        if isinstance(data, dict) and data.get('protoPayload', {}).get('methodName') == 'storage.objects.create':
+            resource_name = data['protoPayload'].get('resourceName', '')
+            bucket_name = resource_name.split('/')[3] if resource_name else ''
+            
+            if bucket_name.startswith('output-user-bucket-'):
+                user_id = bucket_name.split('-')[3]
+                compute_instance_name = f"cynthus-compute-instance-{user_id}"
+                if check_compute_instance_exists(project_id, zone, compute_instance_name):
+                    update_instance_state(user_id, compute_instance_name, 'ACTIVE')
+                    logger.info(f"Marked instance {compute_instance_name} as ACTIVE")
+                return
+
+        # Check for compute instance termination events
+        if isinstance(data, dict) and data.get('jsonPayload', {}).get('event_type') in [
+            'compute.instances.delete', 
+            'compute.instances.stop'
+        ]:
+            instance_name = data.get('resource', {}).get('labels', {}).get('instance_name', '')
+            if instance_name.startswith('cynthus-compute-instance-'):
+                user_id = instance_name.split('-')[-1]
+                update_instance_state(user_id, instance_name, 'DEAD')
+                logger.info(f"Marked instance {instance_name} as DEAD")
+                return
+
         # Modify the compute instance creation check
         if isinstance(data, dict) and data.get('jsonPayload', {}).get('event_type') == 'compute.instances.insert':
             instance_name = data.get('resource', {}).get('labels', {}).get('instance_name', '')
@@ -199,6 +224,47 @@ def create_deploying_entry(user_id, bucket_name, output_bucket_name, compute_ins
         ))
         connection.commit()
         logger.info(f"Created DEPLOYING entry for user {user_id}")
+    finally:
+        if connection:
+            connection.close()
+
+def update_instance_state(user_id, instance_name, new_state):
+    """Helper function to create a new entry with updated state"""
+    connection = get_db_connection()
+    try:
+        cursor = connection.cursor()
+        # First get the most recent entry for this instance
+        cursor.execute("""
+            SELECT run_id, path_to_data, path_to_src, path_to_output 
+            FROM logs 
+            WHERE user_id = %s 
+            AND compute_instance = %s 
+            AND state != 'DEAD'
+            ORDER BY timestamp DESC 
+            LIMIT 1
+        """, (user_id, instance_name))
+        
+        result = cursor.fetchone()
+        if result:
+            run_id, path_to_data, path_to_src, path_to_output = result
+            # Create new entry with same data but new state
+            cursor.execute("""
+                INSERT INTO logs (
+                    user_id, run_id, path_to_data, path_to_src, 
+                    path_to_output, compute_instance, state
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                user_id,
+                run_id,
+                path_to_data,
+                path_to_src,
+                path_to_output,
+                instance_name,
+                new_state
+            ))
+            connection.commit()
+            logger.info(f"Created new entry with state {new_state} for instance {instance_name}")
     finally:
         if connection:
             connection.close()
