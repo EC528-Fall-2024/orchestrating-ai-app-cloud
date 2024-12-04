@@ -1,5 +1,5 @@
 import requests
-from firebase_auth import check_authentication
+from .firebase_auth import *
 from pathlib import Path
 
 FUNCTION_URL = 'https://us-central1-cynthusgcp-438617.cloudfunctions.net/bucket_operations'

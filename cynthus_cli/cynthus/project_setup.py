@@ -8,8 +8,8 @@
 
 #########################################################################################
 
-from docker_ops import do_docker_ops
-from bucket_ops import do_bucket_operations
+# from docker_ops import do_docker_ops
+# from bucket_ops import do_bucket_operations
 from pathlib import Path
 import subprocess
 import json
@@ -181,8 +181,8 @@ def docker_yaml_create(image_name_src="src", image_name_data="data"):
     docker_image_tag: "latest"
     gcp_repo_location: "us-east4"
     '''
-    with open(docker_vars_path, "w") as f:
-        f.write(docker_yaml)
+    # with open(docker_vars_path, "w") as f:
+    #     f.write(docker_yaml)
 
 # Pushes the specified image to the specified container registry
 # Inputs:

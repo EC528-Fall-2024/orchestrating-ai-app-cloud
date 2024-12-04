@@ -1,6 +1,6 @@
 import subprocess
 import requests
-from firebase_auth import check_authentication
+from .firebase_auth import *
 
 API_URL = "https://us-central1-cynthusgcp-438617.cloudfunctions.net/docker-operations/generate-upload-token"
 
