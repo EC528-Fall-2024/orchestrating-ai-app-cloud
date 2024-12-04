@@ -81,14 +81,9 @@ write_files:
 {formatted_key_json}
 
 packages:
-  - python3-pip
-  - python3-dev
-  - python3-venv
   - openssh-server
   - nmap
   - openssh-client
-  - python3
-  - ansible
   - git
   - curl
   - wget
@@ -100,16 +95,6 @@ packages:
   - jq
 
 runcmd:
-  - until dpkg -l | grep -q python3; do sleep 5; done
-  - until command -v python3 >/dev/null 2>&1; do sleep 5; done
-  - mkdir -p /home/cynthus/venv
-  - python3 -m venv /home/cynthus/venv
-  - chown -R cynthus:cynthus /home/cynthus/venv
-  - /home/cynthus/venv/bin/pip install --upgrade pip
-  - /home/cynthus/venv/bin/pip install {' '.join(requirements)}
-  - chown -R cynthus:cynthus /home/cynthus/venv 
-  - echo "Python venv setup complete" > /home/cynthus/venv_setup_complete
-  - chown cynthus:cynthus /home/cynthus/venv_setup_complete
   - mkdir -p /home/cynthus/.config/gcloud/logs
   - mkdir -p /home/cynthus/snap
   - chown -R cynthus:cynthus /home/cynthus/snap
