@@ -23,7 +23,7 @@ def sign_up_user():
             payload), headers={"Content-Type": "application/json"})
         response.raise_for_status()
         auth_data = response.json()
-        print("Sign-up successful")
+        print("Sign-up successful!")
         store_token(auth_data["idToken"],
                     auth_data["localId"], auth_data["expiresIn"])
         # Return token and UID for cloud ops
@@ -46,6 +46,7 @@ def login_user(email, password):
             payload), headers={"Content-Type": "application/json"})
         response.raise_for_status()
         auth_data = response.json()
+        print("Login successful!\n")
         store_token(auth_data["idToken"],
                     auth_data["localId"], auth_data["expiresIn"])
         return auth_data["idToken"], auth_data["localId"]
@@ -79,7 +80,7 @@ def load_token():
     if datetime.now() < expiration_time:
         return token_data["id_token"], token_data["uid"]
     else:
-        print("Token expired. Please log in again.")
+        print("Token not created or expired. Please sign up or log in again.")
         return None, None
 
 
@@ -88,12 +89,28 @@ def check_authentication():
     token, uid = load_token()
     if token:
         return token, uid
+    
+    else: 
+        
+        print("Token not created or expired. Please sign up or log in again.\n")
 
-    email = input("Enter your email: ")
-    password = input("Enter your password: ")
-    try:
-        token, uid = login_user(email, password)
-        return token, uid
-    except Exception as e:
-        print("Login failed. Please try again.")
-        raise
+        user = input("Sign Up (S) or Log In (L)?: ")
+
+        if(user == "S"):
+            print("\n")
+            sign_up_user()
+
+        elif(user == "L"):
+            print("\n")
+            email = input("Enter your email: ")
+            password = input("Enter your password: ")
+            print("\n")
+            try:
+                token, uid = login_user(email, password)
+                return token, uid
+            except Exception as e:
+                print("Login failed. Please try again.")
+                raise
+        
+        else:
+            print("Command not recognized. Try Again")

@@ -29,8 +29,8 @@ requirements_path = Path(__file__).parent.parent.parent / \
     'ansible_main' / 'cloud_init' / 'requirements.txt'
 
 
-def give_info():
-    print('The VM package info can be found below: ')
+# def give_info():
+#     print('The VM package info can be found below: ')
 
 
 # UNIMPLEMENTED
@@ -141,7 +141,7 @@ def cli_entry_point():
         'login', help='Log in to Cynthus account')
 
     # Get information regarding VM package (NOT FULLY IMPLEMENTED SO FAR)
-    parser_info = subparsers.add_parser('info', help='Get VM package info')
+    # parser_info = subparsers.add_parser('info', help='Get VM package info')
 
     # Initialize a project directory Command
 
@@ -240,8 +240,8 @@ def cli_entry_point():
         password = input('Password:')
         login_user(email, password)
 
-    elif args.command == 'info':
-        give_info()
+    # elif args.command == 'info':
+    #     give_info()
     elif args.command == 'init':
         init_project(args.project_name)
     elif args.command == 'VM_start':
