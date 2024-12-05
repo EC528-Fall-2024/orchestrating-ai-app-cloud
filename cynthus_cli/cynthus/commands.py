@@ -110,7 +110,7 @@ def cli_entry_point():
         load_data()
 
     elif args.command == 'update-src':
-        print("Placeholder")
+        src_update()
 
     elif args.command == 'output-pull':
         pull_output()

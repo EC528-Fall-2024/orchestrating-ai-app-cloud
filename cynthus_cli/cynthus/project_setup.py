@@ -115,6 +115,40 @@ def prepare_project(src_path, data_path):
     print(f"Project preparation completed. Bucket name: {bucket_name}")
     return bucket_name
 
+def src_update():
+
+    token, uid = firebase_auth.check_authentication()
+    if not token or not uid:
+        print("Authentication required. Please log in first.")
+        return
+
+    # Create bucket name using new naming convention
+    bucket_name = f"user-bucket-{uid}".lower()
+
+    source = input("New source code directory: ")
+
+    src_path = Path(source)
+
+    # Validate src path
+    if not src_path.is_dir():
+        print(f"Error: '{src_path}' is not a valid directory")
+        return
+
+    image_name = _process_src_directory(src_path)
+    if not image_name:
+        return
+
+    # Push Docker image
+    try:
+        run_id = "0"  # 0 for testing
+        do_docker_ops(run_id, image_name)
+    except Exception as e:
+        print(f"Error during Docker operations: {e}")
+        return
+
+    print(f"Source code update completed to bucket: {bucket_name}")
+    return bucket_name
+
 
 def _process_src_directory(src_path):
     """Helper function to process source directory"""
