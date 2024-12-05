@@ -69,8 +69,13 @@ def cli_entry_point():
     
     # Add new data from a local directory
 
-    parser_prepare = subparsers.add_parser(
+    parser_updatedata = subparsers.add_parser(
         'update-data', help='Push new/updated data to bucket')
+    
+    # Add new source code to artifact registry
+
+    parser_updatesrc = subparsers.add_parser(
+        'update-src', help='Push updated src code to artifact registry')
     
     # Adding the commands to the parser
 
@@ -97,6 +102,9 @@ def cli_entry_point():
 
     elif args.command == 'update-data':
         load_data()
+
+    elif args.command == 'update-src':
+        print("Placeholder")
 
     else:
         parser.print_help()
