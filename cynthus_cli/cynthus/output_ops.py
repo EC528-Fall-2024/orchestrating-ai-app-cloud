@@ -41,7 +41,7 @@ def download_and_extract(signed_url, output_dir):
 
 
 def pull_output():
-    output_dir = "output"
+    output_dir = input("The directory to save the results to: ")
     try:
         # Authenticate and get the UID
         token, uid = check_authentication()
@@ -59,4 +59,5 @@ def pull_output():
         print(f"Error: {e}")
 
 
-pull_output()
+# pull_output()
+ 

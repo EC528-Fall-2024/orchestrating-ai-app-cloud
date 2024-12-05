@@ -14,6 +14,7 @@ from .terraform_funcs import *
 from .project_setup import *
 from .firebase_auth import *
 from .datapull import *
+from .output_ops import *
 from datasets import load_dataset_builder
 # from ...ansible_main.cloud_init import cloud_init_gen
 
@@ -77,6 +78,11 @@ def cli_entry_point():
     parser_updatesrc = subparsers.add_parser(
         'update-src', help='Push updated src code to artifact registry')
     
+    # Pull results from output bucket to local directory
+
+    parser_output = subparsers.add_parser(
+        'output-pull', help='Pull output bucket contents to local directory')
+    
     # Adding the commands to the parser
 
     args = parser.parse_args()
@@ -105,6 +111,9 @@ def cli_entry_point():
 
     elif args.command == 'update-src':
         print("Placeholder")
+
+    elif args.command == 'output-pull':
+        pull_output()
 
     else:
         parser.print_help()
