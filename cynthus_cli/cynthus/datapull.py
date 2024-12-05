@@ -43,8 +43,6 @@ def external_data():
 
     bucket = "user-bucket-"+ uid.lower()
 
-    print(bucket)
-
     link = input("URL to the dataset: ")
 
     parsed_url = urlparse(link)

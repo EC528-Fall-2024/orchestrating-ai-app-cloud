@@ -80,7 +80,7 @@ def load_token():
     if datetime.now() < expiration_time:
         return token_data["id_token"], token_data["uid"]
     else:
-        print("Token not created or expired. Please sign up or log in again.")
+        print("Token not found.\n")
         return None, None
 
 
