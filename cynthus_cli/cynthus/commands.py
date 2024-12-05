@@ -49,7 +49,7 @@ def cli_entry_point():
     # Initialize a project directory Command
 
     parser_init = subparsers.add_parser(
-        'init', help='Create Cynthus project')
+        'init', help='Create Cynthus project folders (locally)')
     parser_init.add_argument(
         'project_name', help='The name of the project to create')
 
@@ -62,10 +62,15 @@ def cli_entry_point():
     parser_prepare.add_argument(
         'data_path', help='The data directory to prepare')
     
-    # Pull external data to a bucket
+    # Pull external data to a bucket (Deprecated)
 
-    parser_external_data = subparsers.add_parser(
-        'external-data', help='Grab a dataset from external source')
+    # parser_external_data = subparsers.add_parser(
+    #     'external-data', help='Grab a dataset from external source')
+    
+    # Add new data from a local directory
+
+    parser_prepare = subparsers.add_parser(
+        'update-data', help='Push new/updated data to bucket')
     
     # Adding the commands to the parser
 
@@ -86,8 +91,12 @@ def cli_entry_point():
     elif args.command == 'prepare':
         prepare_project(args.src_path, args.data_path)
 
-    elif args.command =='external-data':
-        external_data()
+    # DEPRECATED
+    # elif args.command =='external-data':
+    #     external_data()
+
+    elif args.command == 'update-data':
+        load_data()
 
     else:
         parser.print_help()

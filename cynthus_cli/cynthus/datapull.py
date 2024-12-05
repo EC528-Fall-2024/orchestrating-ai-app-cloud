@@ -1,6 +1,7 @@
 import json
 import requests
 from .firebase_auth import *
+from .bucket_ops import *
 from urllib.parse import urlparse
 
 def download_dataset_ex(config):
@@ -34,6 +35,20 @@ def download_dataset_ex(config):
     except requests.exceptions.RequestException as e:
         print(f"Error making request: {e}")
         return None
+
+
+def load_data():
+
+    data = input("Are you loading local (L) or external (E) data?: ")
+
+    if(data == 'L'):
+        internal_data()
+
+    elif(data == 'E'):
+        external_data()
+
+    else:
+        print("Command not recognized. Please try again")
 
 
 def external_data():
@@ -93,4 +108,20 @@ def external_data():
         print("Failed to get response from the API")
 
 
+def internal_data():
 
+    data_path = input("Directory containing the new data: ")
+
+    if data_path:
+        data_path = Path(data_path)
+        if not data_path.is_dir():
+            print(f"Error: '{data_path}' is not a valid directory")
+            return
+        try:
+            do_bucket_operations(str(data_path))
+        except Exception as e:
+            print(f"Error uploading data directory: {e}")
+            return
+
+
+    

@@ -32,12 +32,14 @@ def create_config(config_path):
     with open(config_path_file, "w") as outfile:
         json.dump(data, outfile)
 
-# Initializes the project with the following directory strcuture
+# Initializes the project with the following directory strcuture. 
 # project |
 #         - src
 #         - data
 #         - config
-#         - terraform
+#
+# Note that this will create the directory in the location where this command is called
+
 
 
 def init_project(project_name):
