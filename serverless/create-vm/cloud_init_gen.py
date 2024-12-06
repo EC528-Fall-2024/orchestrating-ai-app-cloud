@@ -81,14 +81,9 @@ write_files:
 {formatted_key_json}
 
 packages:
-  - python3-pip
-  - python3-dev
-  - python3-venv
   - openssh-server
   - nmap
   - openssh-client
-  - python3
-  - ansible
   - git
   - curl
   - wget
@@ -100,22 +95,19 @@ packages:
   - jq
 
 runcmd:
-  - until dpkg -l | grep -q python3; do sleep 5; done
-  - until command -v python3 >/dev/null 2>&1; do sleep 5; done
-  - mkdir -p /home/cynthus/venv
-  - python3 -m venv /home/cynthus/venv
-  - chown -R cynthus:cynthus /home/cynthus/venv
-  - /home/cynthus/venv/bin/pip install --upgrade pip
-  - /home/cynthus/venv/bin/pip install {' '.join(requirements)}
-  - chown -R cynthus:cynthus /home/cynthus/venv 
-  - echo "Python venv setup complete" > /home/cynthus/venv_setup_complete
-  - chown cynthus:cynthus /home/cynthus/venv_setup_complete
+  - mkdir -p /home/cynthus/.config/gcloud/logs
+  - mkdir -p /home/cynthus/snap
+  - chown -R cynthus:cynthus /home/cynthus/snap
+  - chown -R cynthus:cynthus /home/cynthus/.config
+  - chmod 700 /home/cynthus/.config/gcloud
   - sudo chmod a+rwx /home/cynthus/key.json
   - sudo su - cynthus -c "sudo gcloud auth activate-service-account --key-file=/home/cynthus/key.json"
   - mkdir -p /home/cynthus/workspace
   - sudo gsutil cp -r gs://{self.bucket_name}/src/* /home/cynthus/workspace
   - sudo chown -R cynthus:cynthus /home/cynthus/workspace
-  - cd /home/cynthus/workspace && for f in *.py; do if [ -f "$f" ]; then /home/cynthus/venv/bin/python "$f"; fi; done
+  - sudo -u cynthus gcloud auth activate-service-account --key-file=/home/cynthus/key.json
+  - cd /home/cynthus/workspace && sudo chmod a+x report-ip.sh
+  - cd /home/cynthus/workspace && ./report-ip.sh
   - echo "Uploading workspace results to output bucket..."
   - sudo gsutil cp -r /home/cynthus/workspace/* gs://output-{self.bucket_name}/workspace/
   - echo "Workspace upload complete" > /home/cynthus/upload_complete
