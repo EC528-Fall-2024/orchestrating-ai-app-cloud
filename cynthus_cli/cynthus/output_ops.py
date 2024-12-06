@@ -57,6 +57,3 @@ def pull_output():
         print(f"Workspace downloaded and extracted to {output_dir}")
     except Exception as e:
         print(f"Error: {e}")
-
-
-pull_output()

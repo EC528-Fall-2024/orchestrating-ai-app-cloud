@@ -1,6 +1,7 @@
 import json
 import requests
 from .firebase_auth import *
+from .bucket_ops import *
 from urllib.parse import urlparse
 
 def download_dataset_ex(config):
@@ -25,15 +26,40 @@ def download_dataset_ex(config):
         # Make the POST request
         response = requests.post(url, json=config, headers=headers)
         
-        # Raise an exception for bad status codes
+        # Check for specific error status codes
+        if response.status_code == 500:
+            print("Server encountered an internal error. This might be due to:")
+            print("- Invalid dataset URL")
+            print("- Invalid credentials")
+            print("- Server-side processing error")
+            print(f"Server response: {response.text}")
+            return None
+            
+        # Raise an exception for other bad status codes
         response.raise_for_status()
         
         # Return the JSON response
         return response.json()
         
     except requests.exceptions.RequestException as e:
-        print(f"Error making request: {e}")
+        print(f"Error making request: {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Server response: {e.response.text}")
         return None
+
+
+def load_data():
+
+    data = input("Are you loading local (L) or external (E) data?: ")
+
+    if(data == 'L'):
+        internal_data()
+
+    elif(data == 'E'):
+        external_data()
+
+    else:
+        print("Command not recognized. Please try again")
 
 
 def external_data():
@@ -42,8 +68,6 @@ def external_data():
     fire_token, uid = check_authentication()
 
     bucket = "user-bucket-"+ uid.lower()
-
-    print(bucket)
 
     link = input("URL to the dataset: ")
 
@@ -95,4 +119,17 @@ def external_data():
         print("Failed to get response from the API")
 
 
+def internal_data():
 
+    data_path = input("Directory containing the new data: ")
+
+    if data_path:
+        data_path = Path(data_path)
+        if not data_path.is_dir():
+            print(f"Error: '{data_path}' is not a valid directory")
+            return
+        try:
+            do_bucket_operations(str(data_path))
+        except Exception as e:
+            print(f"Error uploading data directory: {e}")
+            return

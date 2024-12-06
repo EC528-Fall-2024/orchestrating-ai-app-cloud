@@ -13,8 +13,7 @@ setup(
     },
     install_requires=[
         'requests',
-        'kaggle',
-        'pyrebase',
-        'firebase_auth'
+        'pathlib',
+        'urllib3'
     ],
 )
