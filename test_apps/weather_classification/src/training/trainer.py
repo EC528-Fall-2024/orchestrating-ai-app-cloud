@@ -9,9 +9,11 @@ import matplotlib.pyplot as plt
 
 class RainPredictor:
     def __init__(self, model: nn.Module, scaler: StandardScaler):
-        self.model = model
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = model.to(self.device)
         self.scaler = scaler
         self.history = {'loss': [], 'val_loss': []}
+        print(f"Using device: {self.device}")
         
     def train(
         self,
@@ -23,6 +25,12 @@ class RainPredictor:
         batch_size: int = 32,
         learning_rate: float = 0.001
     ) -> Dict[str, List[float]]:
+        # Move data to device
+        X_train = X_train.to(self.device)
+        y_train = y_train.to(self.device)
+        X_val = X_val.to(self.device)
+        y_val = y_val.to(self.device)
+
         criterion = nn.BCELoss()
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         n_batches = len(X_train) // batch_size
@@ -70,15 +78,18 @@ class RainPredictor:
         return val_loss
     
     def evaluate(self, X_test: torch.Tensor, y_test: torch.Tensor) -> Tuple[float, Dict]:
+        X_test = X_test.to(self.device)
+        y_test = y_test.to(self.device)
+        
         self.model.eval()
         with torch.no_grad():
             test_outputs = self.model(X_test)
             predicted = (test_outputs.squeeze() >= 0.5).float()
             accuracy = (predicted == y_test).float().mean()
             
-            # Generate detailed metrics
-            y_pred = predicted.numpy()
-            y_true = y_test.numpy()
+            # Move tensors to CPU for numpy conversion
+            y_pred = predicted.cpu().numpy()
+            y_true = y_test.cpu().numpy()
             report = classification_report(y_true, y_pred, output_dict=True)
             
             # Generate confusion matrix
@@ -97,7 +108,7 @@ class RainPredictor:
     
     def predict(self, features: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         scaled_features = self.scaler.transform(features)
-        features_tensor = torch.FloatTensor(scaled_features)
+        features_tensor = torch.FloatTensor(scaled_features).to(self.device)
         
         self.model.eval()
         with torch.no_grad():
@@ -105,7 +116,7 @@ class RainPredictor:
             predictions = (outputs.squeeze() >= 0.5).float()
             probabilities = outputs.squeeze()
         
-        return predictions.numpy(), probabilities.numpy()
+        return predictions.cpu().numpy(), probabilities.cpu().numpy()
 
     def plot_training_history(self):
         plt.figure(figsize=(10, 6))
