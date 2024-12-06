@@ -1,0 +1,3 @@
+functions_framework
+firebase_admin
+requests
