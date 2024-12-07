@@ -1,0 +1,22 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - gcloud
+      - functions
+      - deploy
+      - run-container
+      - --gen2
+      - --runtime=python310
+      - --region=us-east4
+      - --source=.
+      - --entry-point=run_container
+      - --trigger-http
+      - --memory=512MB
+      - --timeout=540s
+      - --min-instances=0
+      - --service-account=datacode-updater@cynthusgcp-438617.iam.gserviceaccount.com
+      - --vpc-connector=projects/cynthusgcp-438617/locations/us-east4/connectors/update-connector
+      - --egress-settings=all
+    
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -99,6 +99,19 @@ def generate_tfvars(tmp_dir, cloud_init_config, instance_name, request_json=None
     tfvars_path = os.path.join(tmp_dir, 'terraform.tfvars.json')
     with open(tfvars_path, 'w') as f:
         json.dump(tfvars_content, f, indent=2)
+    
+    # Upload to GCS bucket
+    storage_client = storage.Client()
+    bucket = storage_client.bucket('terraform-state-cynthus')
+    
+    # Create blob path using user_id from request
+    user_id = request_json.get('user_id', 'unknown')
+    blob_path = f'terraform/vars/{user_id}/terraform.tfvars.json'
+    
+    blob = bucket.blob(blob_path)
+    blob.upload_from_filename(tfvars_path)
+    
+    print(f"Uploaded tfvars file to: gs://terraform-state-cynthus/{blob_path}")
 
 
 
