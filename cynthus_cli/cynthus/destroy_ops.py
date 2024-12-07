@@ -14,12 +14,12 @@ def destroy_resources():
             'Content-Type': 'application/json',
         }
 
-        print('\n🚀 Sending destroy request...')
+        print('\nSending destroy request...')
         
         response = requests.delete(FUNCTION_URL, headers=headers)
         response.raise_for_status()
         
-        print('✅ Resources destroyed:', response.json())
+        print('Resources destroyed:', response.json())
         
     except requests.exceptions.RequestException as e:
         error_data = {
@@ -28,7 +28,7 @@ def destroy_resources():
             "statusText": e.response.reason if e.response else "Unknown",
             "details": e.response.json().get("details", "No additional details") if e.response else "None"
         }
-        print(f"❌ Error: {error_data}")
+        print(f"Error: {error_data}")
     except Exception as e:
-        print(f"💥 Fatal error: {str(e)}")
+        print(f"Fatal error: {str(e)}")
 
