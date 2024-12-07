@@ -245,7 +245,15 @@ Stretch Goals:
 - Enhanced secret management
 - Multi-tenancy support
 - Distributed ML training/inference
-
+Stretch Goals:
+- Queueing system for async operations
+- Enhanced secret management
+- Multi-tenancy support
+- Distributed ML training/inference
+- GPU support
+- CLI refinements
+- Billing managemet
+- GUI tracking
 ** **
 
 Previous team worked with supervisor:
