@@ -115,24 +115,10 @@ def external_data():
     
     if result:
         print("Response:", json.dumps(result, indent=2))
+        return
     else:
         print("Failed to get response from the API")
-
-
-def internal_data():
-
-    data_path = input("Directory containing the new data: ")
-
-    if data_path:
-        data_path = Path(data_path)
-        if not data_path.is_dir():
-            print(f"Error: '{data_path}' is not a valid directory")
-            return
-        try:
-            do_bucket_operations(str(data_path))
-        except Exception as e:
-            print(f"Error uploading data directory: {e}")
-            return
+        return
 
 
 def internal_data():
