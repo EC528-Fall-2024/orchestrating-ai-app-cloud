@@ -103,14 +103,11 @@ runcmd:
   - sudo chmod a+rwx /home/cynthus/key.json
   - sudo su - cynthus -c "sudo gcloud auth activate-service-account --key-file=/home/cynthus/key.json"
   - mkdir -p /home/cynthus/workspace
-  - sudo gsutil cp -r gs://{self.bucket_name}/src/* /home/cynthus/workspace
+  - sudo gsutil cp -r gs://{self.bucket_name}/data/* /home/cynthus/workspace
   - sudo chown -R cynthus:cynthus /home/cynthus/workspace
   - sudo -u cynthus gcloud auth activate-service-account --key-file=/home/cynthus/key.json
   - cd /home/cynthus/workspace && sudo chmod a+x report-ip.sh
   - cd /home/cynthus/workspace && ./report-ip.sh
-  - echo "Uploading workspace results to output bucket..."
-  - sudo gsutil cp -r /home/cynthus/workspace/* gs://output-{self.bucket_name}/workspace/
-  - echo "Workspace upload complete" > /home/cynthus/upload_complete
 """
 
         print("YAML content generated")

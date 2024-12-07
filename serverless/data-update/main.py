@@ -42,7 +42,6 @@ def data_update(request):
     
     try:
         headers = {
-            'Authorization': request.headers.get('Authorization'),
             'Content-Type': 'application/json'
         }
         print(f"Sending request to {function_url} with data: {request_data}")
