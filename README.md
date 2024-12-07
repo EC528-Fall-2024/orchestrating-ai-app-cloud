@@ -227,6 +227,9 @@ Minimum acceptance criteria includes:
 
 Current Progress:
 - All functional requirements met
+- Have functional CLI for end-to-end deployment
+- Security implemeted with user authentication & resource access control
+- Setup cloud infrastructure
 - Persisted through a Cloud Platform migration and a major architecture redesign
 
 Stretch Goals:
