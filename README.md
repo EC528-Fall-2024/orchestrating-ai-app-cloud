@@ -225,7 +225,7 @@ Minimum acceptance criteria includes:
 
 ## 6.  Release Planning:
 
-Current Progress (Through Sprint 4):
+Current Progress:
 - Implemented basic CLI functionality
 - Established GCP infrastructure
 - Created containerized deployment pipeline
