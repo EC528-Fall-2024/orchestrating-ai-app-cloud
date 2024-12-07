@@ -39,6 +39,31 @@ Final Presentation:
 
 ** **
 
+## Project Dependencies and Installation:
+
+In order to run Cynthus, Docker needs to be installed on the device and be on the system PATH. The link to download Docker can be found below:
+
+- [Docker/ Docker Desktop](https://www.docker.com/)
+
+In order to use the Cynthus CLI, pull this respository, then open a terminal from the cynthus_cli directory. Next, in the terminal
+run the following command:
+
+```
+pip install -e .
+```
+
+## CLI Command Explanations:
+
+The Cynthus CLI has the following commands:
+
+- signup: Allows the user to create an account. Running this command will prompt the user for an email to associate the account with, and then ask them to create a password. Note that running this command with another user logged in will log out that user.
+- login: Log in to a created Cynthus account. 
+- init [project name]: will create a folder directory [project name] for the user within the directory this command is run. (Optional)
+- prepare --src_path [src_path] --data_path [data_path]: Given the directories containing the source code and data, this command will push the contents of the directories to the Google Cloud Platform in order to project. If no local data_path is provided, the user will be prompted to provide a link to external data (currently only works with Kaggle and HuggingFace).
+- update-data: Given new data, this command will push the new data to the users data bucket. The user will be prompted as to whether this new data is local or external.
+- update-src: Given a new source code path, this command will push the new source code to the Artifact Registry.
+- output-pull: Once the project has finished running, this command can be run to pull the output from the users output bucket locally, in the location this command is run.
+
 ## 1.   Vision and Goals Of The Project:
 
 Cynthus aims to simplify the deployment of AI applications on cloud platforms. While initially designed for Intel Developer Cloud (IDC), the project currently operates on Google Cloud Platform (GCP) due to accessibility considerations. The platform addresses the challenges developers face when deploying AI workloads by providing automated solutions for resource management, dependency handling, and deployment orchestration.
