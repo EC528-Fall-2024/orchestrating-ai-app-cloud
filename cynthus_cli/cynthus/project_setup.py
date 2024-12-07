@@ -158,6 +158,9 @@ def _process_src_directory(src_path):
     if not dockerfile_path.exists():
         with open(dockerfile_path, 'w') as f:
             f.write("FROM alpine:latest\n")
+            f.write("WORKDIR /src\n")
+            f.write("COPY . /src\n")
+            f.write("CMD [\"/bin/sh\"]\n")
 
     # Build Docker image
     image_name = 'src_image'
