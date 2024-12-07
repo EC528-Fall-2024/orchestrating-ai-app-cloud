@@ -59,7 +59,7 @@ def cli_entry_point():
     
     # Pull results from output bucket to local directory
     parser_output = subparsers.add_parser(
-        'output-pull', help='Pull output bucket contents to local directory')
+        'pull', help='Pull output bucket contents to local directory')
 
     args = parser.parse_args()
 
@@ -90,7 +90,7 @@ def cli_entry_point():
         load_data()
     elif args.command == 'update-src':
         src_update()
-    elif args.command == 'output-pull':
+    elif args.command == 'pull':
         pull_output()
     else:
         parser.print_help()
