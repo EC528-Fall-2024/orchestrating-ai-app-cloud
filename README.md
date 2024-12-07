@@ -96,7 +96,7 @@ The AI Deployment Platform provides:
 
 ## 4. Solution Concept
 
-![Architecture](https://github.com/user-attachments/assets/c5fdc6d3-1cc0-4f9d-8a4c-61d0807b5ef6)
+![Architecture](https://github.com/user-attachments/assets/6419153f-f667-4b1f-a95d-27f2bc673b0d)
 
 
 The solution architecture consists of several key components working together to provide end-to-end AI application deployment:
