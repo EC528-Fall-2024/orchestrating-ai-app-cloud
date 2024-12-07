@@ -56,3 +56,5 @@ var/
 *.swp
 *.swo
 .DS_Store
+cynthus_cli/auth_token.json
+auth_token.json

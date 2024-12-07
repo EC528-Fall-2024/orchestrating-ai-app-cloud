@@ -1,6 +1,6 @@
 import subprocess
 import requests
-from firebase_auth import check_authentication
+from .firebase_auth import check_authentication
 
 API_URL = "https://us-central1-cynthusgcp-438617.cloudfunctions.net/docker-operations/generate-upload-token"
 
@@ -18,7 +18,7 @@ def docker_push(runid, image_name, upload_token):
     subprocess.run(["docker", "login", "-u", "oauth2accesstoken", "--password-stdin", "us-east4-docker.pkg.dev"],
                    input=upload_token, text=True, check=True)
 
-    artifact_image_name = f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/cynthus-compute-instance-{uid}-{runid}"
+    artifact_image_name = f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/cynthus-compute-instance-{uid.lower()}-{runid}"
     subprocess.run(["docker", "tag", image_name,
                    artifact_image_name], check=True)
 

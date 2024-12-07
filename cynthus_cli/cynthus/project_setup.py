@@ -7,16 +7,14 @@
 # - project_push(image_name)
 
 #########################################################################################
-
-from docker_ops import do_docker_ops
-from bucket_ops import do_bucket_operations
 from pathlib import Path
 import subprocess
 import json
-from .init_bucket import create_bucket_class_location, upload_blob
 from . import firebase_auth
 from .bucket_ops import *
 from .docker_ops import *
+from .datapull import *
+import sys
 
 
 def create_config(config_path):
@@ -37,7 +35,9 @@ def create_config(config_path):
 #         - src
 #         - data
 #         - config
-#         - terraform
+#
+# Note that this will create the directory in the location where this command is called
+
 
 
 def init_project(project_name):
@@ -96,6 +96,9 @@ def prepare_project(src_path, data_path):
         except Exception as e:
             print(f"Error uploading data directory: {e}")
             return
+    else:
+        print("No data directory provided. Prompting user for external data.")
+        external_data()
 
     # Process source directory and build Docker image
     image_name = _process_src_directory(src_path)
@@ -112,6 +115,42 @@ def prepare_project(src_path, data_path):
 
     print(f"Project preparation completed. Bucket name: {bucket_name}")
     return bucket_name
+
+def src_update():
+
+    token, uid = firebase_auth.check_authentication()
+    if not token or not uid:
+        print("Authentication required. Please log in first.")
+        return
+
+    # Create bucket name using new naming convention
+    bucket_name = f"user-bucket-{uid}".lower()
+
+    source = input("New source code directory: ")
+
+    src_path = Path(source)
+
+    # Validate src path
+    if not src_path.is_dir():
+        print(f"Error: '{src_path}' is not a valid directory")
+        return
+
+    image_name = _process_src_directory(src_path)
+    if not image_name:
+        return
+
+    # Push Docker image
+    try:
+        run_id = "0"  # 0 for testing
+        do_docker_ops(run_id, image_name)
+    except Exception as e:
+        print(f"Error during Docker operations: {e}")
+        return
+
+    print(f"Source code update completed to bucket: {bucket_name}")
+    return bucket_name
+
+
 def _process_src_directory(src_path):
     """Helper function to process source directory"""
     src_path = Path(src_path).resolve()
@@ -137,8 +176,25 @@ def _process_src_directory(src_path):
         print(f"Generated Dockerfile in {src_path}")
 
     image_name = 'src_image'
+
+    # Check if Docker is available
     try:
-        print(f"Building Docker image '{image_name}'...")
+        subprocess.run(['docker', '--version'], 
+                      check=True, 
+                      capture_output=True, 
+                      text=True)
+    except FileNotFoundError:
+        print("Error: Docker is not installed or not found in system PATH")
+        print("Please install Docker Desktop from https://www.docker.com/products/docker-desktop/")
+        print("After installation, ensure Docker Desktop is running")
+        sys.exit(1)
+    except subprocess.CalledProcessError:
+        print("Error: Docker is installed but not running")
+        print("Please start Docker Desktop and try again")
+        sys.exit(1)
+
+    # Continue with Docker build if checks pass
+    try:
         subprocess.run(['docker', 'build', '-t', image_name,
                        str(src_path)], check=True)
         print(f"Image '{image_name}' built successfully")
@@ -147,62 +203,6 @@ def _process_src_directory(src_path):
         print(f"Error building Docker image '{image_name}': {error}")
         return None
 
-
-def _process_data_directory(data_path, bucket_name, tar_data):
-    """Helper function to process data directory"""
-    if tar_data:
-        return _handle_tarred_data(data_path, bucket_name)
-    else:
-        return _handle_individual_files(data_path, bucket_name)
-
-
-def _handle_tarred_data(data_path, bucket_name):
-    """Helper function to handle tarred data upload"""
-    data_tar_path = data_path.with_suffix('.tar')
-    try:
-        print(f"Tarring data directory to '{data_tar_path}'...")
-        subprocess.run(['tar', '-cf', str(data_tar_path), '-C',
-                       str(data_path.parent), data_path.name], check=True)
-        print(f"Data tar file '{data_tar_path}' created successfully")
-        upload_blob(bucket_name, str(data_tar_path), "data/data.tar")
-        return True
-    except subprocess.CalledProcessError as error:
-        print(f"Error creating tar file for data directory: {error}")
-        return False
-
-
-def _handle_individual_files(data_path, bucket_name):
-    """Helper function to handle individual file uploads"""
-    try:
-        for file_path in data_path.rglob('*'):
-            if file_path.is_file():
-                blob_path = f"data/{file_path.relative_to(data_path)}"
-                upload_blob(bucket_name, str(file_path), blob_path)
-        return True
-    except Exception as error:
-        print(f"Error uploading individual files: {error}")
-        return False
-
-
-def docker_yaml_create(image_name_src="src", image_name_data="data"):
-    """Create Docker YAML configuration file"""
-    docker_yaml = f'''# vars.yml
-    artifact_src: "/home/control/cynthus/orchestrating-ai-app-cloud/ansible_main/ansible_control/artifact-reader.json"
-    artifact_dest: "/tmp/artifact-reader.json"
-    docker_image_name_src: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_src}"
-    docker_image_name_data: "us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name_data}"
-    docker_image_tag: "latest"
-    gcp_repo_location: "us-east4"
-    '''
-    with open(docker_vars_path, "w") as f:
-        f.write(docker_yaml)
-
-# Pushes the specified image to the specified container registry
-# Inputs:
-# -
-# currently deadlocked on intel by our inability to access Intel API and SSH implementation
-
-
 def project_push(image_name):
     # gcp_docker_auth()
     subprocess.run(["docker", "tag", str(
@@ -210,69 +210,3 @@ def project_push(image_name):
 
     subprocess.run(
         ["docker", "push", f"us-east4-docker.pkg.dev/cynthusgcp-438617/cynthus-images/{image_name}"])
-
-
-##### Old project_prepare code; can remove later if necessary #####
-
-# def prepare_project(project_path):
-
-#     # The parent directory
-#     project_path = Path(project_path)
-
-#     if not project_path.is_dir():
-#         print(f"Error: '{project_path}' is not a valid directory")
-#         return
-
-#     project_path_data = project_path / 'data'
-#     project_path_src = project_path / 'src'
-
-#     # if project_path_src.is_dir():
-#     #     try:
-#     #         subprocess.run(['pipreqs', str(project_path_src),
-#     #                        '--savepath', str(requirements_path)], check=True)
-#     #     except subprocess.CalledProcessError as error:
-#     #         print(f"Error generating requirements.txt: {error}")
-#     # else:
-#     #     print(f"Error: '{project_path_src}' directory does not exist")
-
-#     # Creates Data Dockerfile
-#     dockerfile_path_data = project_path_data / 'Dockerfile'
-
-#     if not dockerfile_path_data.exists():
-#         with open(dockerfile_path_data, 'w') as f:
-#             f.write("FROM alpine:latest\n")
-
-#     try:
-#         image_name_data = project_path_data.name
-#         print(f"building Docker image '{image_name_data}'...")
-#         subprocess.run(['docker', 'build', '-t', image_name_data,
-#                        str(project_path_data)], check=True)
-#         print(f"image '{image_name_data}' built successfully")
-#         project_push(image_name_data)
-
-#     except subprocess.CalledProcessError as error:
-#         print(f"Error: {error}")
-
-#     # Creates Src Dockerfile
-#     dockerfile_path_src = project_path_src / 'Dockerfile'
-
-#     if not dockerfile_path_src.exists():
-#         with open(dockerfile_path_src, 'w') as f:
-#             f.write("FROM alpine:latest\n")
-
-#     try:
-#         image_name_src = project_path_src.name
-#         print(f"building Docker image '{image_name_src}'...")
-#         subprocess.run(['docker', 'build', '-t', image_name_src,
-#                        str(project_path_src)], check=True)
-#         print(f"image '{image_name_src}' built successfully")
-#         project_push(image_name_src)
-
-#     except subprocess.CalledProcessError as error:
-#         print(f"Error: {error}")
-
-    # docker_yaml_create(image_name_src, image_name_data)
-
-    # cloud_init_gen.generate_cloud_init_yaml(requirements_path, output_path, image_name_src, image_name_data)
-
-    # return bucket_name
