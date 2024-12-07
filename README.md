@@ -96,89 +96,105 @@ The AI Deployment Platform provides:
 
 ## 4. Solution Concept
 
-![Architecture](https://github.com/user-attachments/assets/cd56583e-ad03-487c-89a6-f423d75a4865)
+![Architecture](https://github.com/user-attachments/assets/6419153f-f667-4b1f-a95d-27f2bc673b0d)
+
 
 The solution architecture consists of several key components working together to provide end-to-end AI application deployment:
 
 ### Client Layer
 - Command Line Interface (CLI)
   - Primary user interaction point
-  - Handles data and source code uploads
-  - Generates requirements.txt through pipreqs function
-  - Monitors output storage for results
+  - Handles authentication through Firebase
+  - Manages project initialization and configuration
+  - Builds and uploads Docker containers
+  - Monitors deployment status and results
+
+### Data Management Layer
+- Dataset Downloader
+  - Integrates with Kaggle and HuggingFace
+  - Manages dataset versioning and storage
+  - Handles data preprocessing requirements
+
+- Bucket Builder
+  - Creates and manages GCP storage buckets
+  - Generates requirements.txt automatically
+  - Handles input/output storage configuration
 
 ### Storage Layer
-- Input Object Storage (S3 or Equivalent)
-  - Stores three key components:
-    - User data
-    - requirements.txt
-    - Source code
-  - Acts as the trigger point for deployment pipeline
+- Input Object Storage (GCP Bucket)
+  - Stores user data, requirements.txt, and source code
+  - Triggers deployment workflows
+  - Manages access control through Firebase authentication
 
-- Output Object Storage (S3 or Equivalent)
+- Output Object Storage (GCP Bucket)
   - Stores computation results
-  - Contains processed data and source code outputs
-  - Accessible by clients for retrieving results
+  - Maintains execution logs
+  - Provides secure access to processed data
 
 ### Processing Layer
-- Serverless Function (Lambda Equivalent)
-  - Triggered by updates to input storage
-  - Responsible for VM creation and setup
-  - Handles three main tasks:
-    - Installing requirements
-    - Copying source code
-    - Getting data from object storage
-  - Creates and manages VM instances
+- Cloud Run Functions
+  - Handles VM provisioning and configuration
+  - Manages container deployment
+  - Coordinates with orchestrator for deployment status
+  - Processes authentication and authorization
 
 ### Management Layer
 - SQL Database
-  - Tracks key metadata:
-    - Run ID
-    - User ID
-    - Path to Data
-    - Path to Source Code
-    - State
-  - Maintains deployment state information
+  - Tracks deployment metadata:
+    - Run ID and User ID
+    - Resource paths and states
+    - Deployment configurations
+  - Maintains system state information
 
 - Orchestrator Server
-  - Monitors VM health through heartbeat mechanism
-  - Manages state updates
+  - Monitors VM health through heartbeats
+  - Manages container lifecycle
   - Handles failure recovery
+  - Updates deployment states
   - Coordinates between components
-  - Updates database status
+
+### Container Registry Layer
+- Artifacts Registry
+  - Stores Docker container images
+  - Manages image versions
+  - Provides secure container distribution
+  - Integrates with VM deployment
 
 ### Compute Layer
 - VM Bare Metal
-  - Executes AI workloads
-  - Processes data
-  - Reports status to orchestrator
-  - Writes results to output storage
+  - Executes containerized AI workloads
+  - Reports health status to orchestrator
+  - Manages data processing
+  - Handles output generation
 
 ### Key Workflows:
-1. Data Ingestion Flow:
-   - Client uploads data and code
-   - Pipreqs generates requirements
-   - Materials stored in input storage
+1. Authentication Flow:
+   - User authenticates via Firebase
+   - Access tokens manage resource permissions
+   - Secure communication between components
 
 2. Deployment Flow:
-   - Serverless function detects new input
-   - Creates and configures VM
-   - Orchestrator monitors deployment
-   - Database tracks state changes
+   - Container image built and pushed to Artifacts Registry
+   - Cloud Run Functions provision VM resources
+   - Orchestrator manages deployment lifecycle
+   - System state tracked in SQL database
 
-3. Execution Flow:
-   - VM processes workload
-   - Results written to output storage
-   - Client notified of completion
-   - State updated in database
+3. Data Management Flow:
+   - Dataset Downloader fetches external data
+   - Bucket Builder creates storage infrastructure
+   - Input/Output buckets manage data lifecycle
 
-4. Monitoring Flow:
-   - Orchestrator receives VM heartbeats
-   - Triggers rerun upon failures
-   - Updates deployment state
-   - Maintains system reliability
+4. Execution Flow:
+   - VM pulls container from Artifacts Registry
+   - Workload processes data
+   - Results stored in output bucket
+   - Status updates maintained in database
 
-This architecture provides a scalable, reliable, and automated pipeline for AI application deployment, with clear separation of concerns and robust monitoring capabilities.
+5. Monitoring Flow:
+   - Orchestrator tracks VM health
+   - System handles failure recovery
+   - Metrics and logs collected
+   - State management maintained
 
 ** **
 
@@ -209,28 +225,19 @@ Minimum acceptance criteria includes:
 
 ## 6.  Release Planning:
 
-Current Progress (Through Sprint 4):
-- Implemented basic CLI functionality
-- Established GCP infrastructure
-- Created containerized deployment pipeline
-- Integrated authentication and security features
-- Developed logging and monitoring systems
-
-Next Steps:
-- Deploy orchestrator
-- Implement VM health checks
-- Enhance dataset API integration
-- Improve bucket management
-- Add containerized source code security
-- Implement dynamic resource allocation
-- Create real AI workload demonstrations
+Current Progress:
+- All functional requirements met
+- Persisted through a Cloud Platform migration and a major architecture redesign
 
 Stretch Goals:
 - Queueing system for async operations
 - Enhanced secret management
 - Multi-tenancy support
 - Distributed ML training/inference
-
+- GPU support
+- CLI refinements
+- Billing managemet
+- GUI tracking
 ** **
 
 Previous team worked with supervisor:
