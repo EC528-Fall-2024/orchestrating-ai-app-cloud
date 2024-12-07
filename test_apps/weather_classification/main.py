@@ -41,7 +41,7 @@ def main():
         torch.manual_seed(training_config.random_seed)
         
         # Initialize dataset
-        dataset = WeatherDataset('data/weather_forecast_data.csv')
+        dataset = WeatherDataset('weather_forecast_data.csv')
         X_train, X_test, y_train, y_test = dataset.load_and_preprocess()
         
         # Initialize model
