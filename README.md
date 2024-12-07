@@ -223,7 +223,18 @@ Minimum acceptance criteria includes:
 
 ** **
 
-## 6.  Release Planning:
+## 6. Challenges:
+- Accessing the Intel Developer Cloud
+- Architecture redesign
+- Microservice integration
+- Familiarization with technologies
+- Security considerations
+- Time management
+- Accessing GPUs and GKE on GCP
+
+** **
+
+## 7.  Release Planning:
 
 Current Progress:
 - All functional requirements met
