@@ -33,7 +33,7 @@ def cli_entry_point():
     parser_prepare = subparsers.add_parser(
         'prepare', help='Prepare and push a project directory to the GCP')
     parser_prepare.add_argument(
-        'src_path', help='The src directory to prepare')
+        '--src_path', help='The src directory to prepare', required=True)
     parser_prepare.add_argument(
         '--data_path', help='The data directory to prepare (optional)', default=None)
 

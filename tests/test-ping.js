@@ -26,7 +26,7 @@ async function getAuthToken() {
         // Wait a moment for Firebase to initialize
         await new Promise(resolve => setTimeout(resolve, 1000));  
         
-        const userCredential = await signInWithEmailAndPassword(auth, 'example@test.com', '123456');
+        const userCredential = await signInWithEmailAndPassword(auth, 'test@example.com', '123456');
         const token = await userCredential.user.getIdToken(true);  // Force refresh token
         console.log('✅ Successfully obtained auth token');
         return token;
