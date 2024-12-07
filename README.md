@@ -46,8 +46,7 @@ In order to run Cynthus, Docker needs to be installed on the device and be on th
 In order to use the Cynthus CLI, pull this respository, then open a terminal from the cynthus_cli directory. Next, in the terminal
 run the following command:
 
-'''
-pip install -e .
+'''pip install -e .
 '''
 
 ## CLI Command Explanations:
