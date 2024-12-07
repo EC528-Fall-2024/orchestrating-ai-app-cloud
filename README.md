@@ -34,6 +34,8 @@ Sprint Slides:
 - [Sprint 4 Slides](https://docs.google.com/presentation/d/1qjwYTIiLE6tRwIy_jwnmzikNkbKiSh1vVd72R9W0bHg/edit?usp=sharing)
 - [Sprint 5 Slides](https://docs.google.com/presentation/d/1ku1LTP_kWTvcnEp0mIy9HmjLlY67A9Ctv_QcTRNJHqQ/edit?usp=sharing)
 
+Final Presentation:
+- [Final Presentation](https://docs.google.com/presentation/d/1oEVWBWb2RCjHnjuXlV53RF1UR75O6lgDaAwiJFKLADU/edit?usp=sharing)
 
 ** **
 
