@@ -106,14 +106,8 @@ def do_bucket_operations(directory_path: str):
         for file in directory.rglob('*'):
             if file.is_file():
                 relative_path = file.relative_to(directory)
-                upload_file(token, str(file), str(relative_path))
-
-        # Verify and upload 'config.json' explicitly
-        # config_file = directory / "config.json"
-        # if not config_file.exists():
-        #     raise FileNotFoundError(
-        #         f"'config.json' not found in directory {directory_path}")
-        # upload_file(token, str(config_file), "config.json")
+                upload_path = f"data/{relative_path}"
+                upload_file(token, str(file), upload_path)
 
         # Generate requirements after all uploads are completed
         generate_requirements(token)
