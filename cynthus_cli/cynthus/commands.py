@@ -4,6 +4,8 @@ from .project_setup import *
 from .firebase_auth import *
 from .datapull import *
 from .output_ops import *
+from .update_ops import *
+from .destroy_ops import *
 
 def cli_entry_point():
     # From Firebase.py
@@ -44,6 +46,16 @@ def cli_entry_point():
     # Add new source code to artifact registry
     parser_updatesrc = subparsers.add_parser(
         'update-src', help='Push updated src code to artifact registry')
+
+    parser_update = subparsers.add_parser(
+        'update', help='Update either the source or data after it has been prepared and pushed')
+    
+    group = parser_update.add_mutually_exclusive_group(required=False)
+    group.add_argument('--src', action='store_true', help='Update the source')
+    group.add_argument('--data', action='store_true', help='Update the data')
+
+    parser_destroy = subparsers.add_parser(
+        'destroy', help='Destroy the current resources')
     
     # Pull results from output bucket to local directory
     parser_output = subparsers.add_parser(
@@ -61,6 +73,19 @@ def cli_entry_point():
         init_project(args.project_name)
     elif args.command == 'prepare':
         prepare_project(args.src_path, args.data_path)
+    elif args.command == 'update':
+        if args.src:
+            print("Updating source...")
+            update_src()
+        elif args.data:
+            print("Updating data...")
+            update_data()
+        else:
+            print("Updating source and data...")
+            update_src()
+            update_data()
+    elif args.command == 'destroy':
+        destroy_resources()
     elif args.command == 'update-data':
         load_data()
     elif args.command == 'update-src':
