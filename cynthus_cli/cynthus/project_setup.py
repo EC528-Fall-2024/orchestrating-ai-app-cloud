@@ -112,17 +112,30 @@ def prepare_project(src_path, data_path):
 
     print(f"Project preparation completed. Bucket name: {bucket_name}")
     return bucket_name
-
-
 def _process_src_directory(src_path):
     """Helper function to process source directory"""
-    # Create Dockerfile if it doesn't exist
+    src_path = Path(src_path).resolve()
+
+    try:
+        subprocess.run(['pipreqs', str(src_path), '--force',
+                       '--mode', 'no-pin'], check=True)
+        print("requirements.txt generated successfully.")
+    except subprocess.CalledProcessError as error:
+        print(f"Error generating requirements.txt: {error}")
+        return None
+
     dockerfile_path = src_path / 'Dockerfile'
     if not dockerfile_path.exists():
         with open(dockerfile_path, 'w') as f:
-            f.write("FROM alpine:latest\n")
+            f.write(
+                "FROM python:3.12-slim\n"
+                "WORKDIR /src\n"
+                "COPY . /src\n"
+                "RUN pip install --no-cache-dir -r requirements.txt\n"
+                "CMD [\"python\", \"main.py\"]\n"
+            )
+        print(f"Generated Dockerfile in {src_path}")
 
-    # Build Docker image
     image_name = 'src_image'
     try:
         print(f"Building Docker image '{image_name}'...")
