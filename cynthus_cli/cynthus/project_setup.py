@@ -14,6 +14,7 @@ from . import firebase_auth
 from .bucket_ops import *
 from .docker_ops import *
 from .datapull import *
+from .update_ops import *
 import sys
 
 
@@ -146,6 +147,8 @@ def src_update():
     except Exception as e:
         print(f"Error during Docker operations: {e}")
         return
+
+    update_src()
 
     print(f"Source code update completed to bucket: {bucket_name}")
     return bucket_name

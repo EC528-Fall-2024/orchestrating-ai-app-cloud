@@ -2,6 +2,7 @@ import json
 import requests
 from .firebase_auth import *
 from .bucket_ops import *
+from .update_ops import *
 from urllib.parse import urlparse
 
 def download_dataset_ex(config):
@@ -115,6 +116,7 @@ def external_data():
     
     if result:
         print("Response:", json.dumps(result, indent=2))
+        update_data()
         return
     else:
         print("Failed to get response from the API")
@@ -132,6 +134,8 @@ def internal_data():
             return
         try:
             do_bucket_operations(str(data_path))
+            update_data()
+
         except Exception as e:
             print(f"Error uploading data directory: {e}")
             return
