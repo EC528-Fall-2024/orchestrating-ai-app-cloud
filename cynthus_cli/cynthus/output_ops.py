@@ -2,7 +2,7 @@ import requests
 import os
 import tarfile
 from pathlib import Path
-from firebase_auth import check_authentication
+from .firebase_auth import check_authentication
 
 API_URL = "https://us-central1-cynthusgcp-438617.cloudfunctions.net/output-ops/generate_workspace_url"
 
