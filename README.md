@@ -52,7 +52,7 @@ run the following command:
 pip install -e .
 ```
 
-Once this installation is complete, commands are run using the follwing format: 
+Once this installation is complete, commands are run using the following format: 
 
 ```
 cynthus [command]
