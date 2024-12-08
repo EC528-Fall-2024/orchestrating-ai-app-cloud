@@ -82,7 +82,7 @@ NOTE: Docker Desktop must be open in order to run the commands **prepare** and *
 ** **
 ## Other requirements
 
-- Due to how construction of the Docker image is handled by the CLI, the file with the source directory containing the code that the user wants to run upon resource provisioning on the GCP should be named **main.py**.
+- Due to how construction of the Docker image is handled by the CLI, the file within the source directory containing the code that the user wants to run upon resource provisioning on the GCP should be named **main.py**.
 
 ** **
 
