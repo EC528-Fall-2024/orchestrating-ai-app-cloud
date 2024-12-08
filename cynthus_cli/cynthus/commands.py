@@ -6,6 +6,7 @@ from .datapull import *
 from .output_ops import *
 from .update_ops import *
 from .destroy_ops import *
+from .run_ops import *
 
 def cli_entry_point():
     # From Firebase.py
@@ -54,6 +55,9 @@ def cli_entry_point():
     group.add_argument('--src', action='store_true', help='Update the source')
     group.add_argument('--data', action='store_true', help='Update the data')
 
+    parser_run = subparsers.add_parser(
+        'run', help='Run the container associated with this user')
+    
     parser_destroy = subparsers.add_parser(
         'destroy', help='Destroy the current resources')
     
@@ -90,6 +94,8 @@ def cli_entry_point():
         load_data()
     elif args.command == 'update-src':
         src_update()
+    elif args.command == 'run':
+        run_container()
     elif args.command == 'pull':
         pull_output()
     else:

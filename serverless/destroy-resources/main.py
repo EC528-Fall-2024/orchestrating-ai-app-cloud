@@ -5,39 +5,116 @@ import subprocess
 import tempfile
 import json
 from terraform_configs import MAIN_TF, VARIABLES_TF
+from firebase_admin import auth, initialize_app
 
+initialize_app()
+
+def verify_firebase_token(request):
+    """Helper function to verify Firebase token"""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return None, ('Unauthorized', 401)
+    id_token = auth_header.split('Bearer ')[1]
+    
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        return decoded_token['uid'], None
+    except Exception as e:
+        return None, ({'error': str(e)}, 401)
+    
 @functions_framework.http
 def destroy_resources(request):
     """HTTP Cloud Function to destroy terraform resources."""
+    print("Destroying resources...")
+    user_id, error = verify_firebase_token(request)
+    if error:
+        return error
+       
+    user_id = user_id.lower()
+    
+    request_json = request.get_json() if request.is_json else {}
+    
+    
+    
     try:
-        request_json = request.get_json()
-        if not request_json or 'user_id' not in request_json:
-            return {'error': 'user_id is required'}, 400
-
-        user_id = request_json['user_id']
         instance_name = f"cynthus-compute-instance-{user_id}"
 
         # Create temporary directory for Terraform files
         with tempfile.TemporaryDirectory() as tmp_dir:
+            print(f"Created temporary directory: {tmp_dir}")
+            
             # Setup Terraform environment
             terraform_path = setup_terraform_environment(tmp_dir, user_id)
-            
-            # Generate tfvars
-            generate_tfvars(tmp_dir, instance_name, request_json)
             
             # Get the workspace name from the state file in GCS
             workspace_name = get_workspace_name(user_id)
             
+            print(f"Workspace name: {workspace_name}")
+            
             if not workspace_name:
                 return {'error': 'No workspace found for this user'}, 404
             
+            print(f"Getting terraform variables for user: {user_id}")
+            
+            storage_client = storage.Client()
+            tfvars_bucket = storage_client.bucket('terraform-state-cynthus')
+            tfvars_blob = tfvars_bucket.blob(f'terraform/vars/{user_id}/terraform.tfvars.json')
+
+            if not tfvars_blob.exists():
+                return {'error': 'No terraform variables found for this user'}, 404
+       
+            # Download and save tfvars file
+            tfvars_path = os.path.join(tmp_dir, 'terraform.tfvars.json')
+            with open(tfvars_path, 'wb') as tfvars_file:
+                tfvars_blob.download_to_file(tfvars_file)
+                # Make sure the file is written to disk
+                tfvars_file.flush()
+                
+            print(f"Terraform variables file downloaded to: {tfvars_path}")
+            
+            cloud_init_path = os.path.join(tmp_dir, 'cloud-init-config.yaml')
+            with open(cloud_init_path, 'w') as f:
+                f.write("""#cloud-config
+runcmd:
+  - echo "Dummy file for terraform destroy"
+""")
+            # Add the cloud-init file to the Terraform configuration
+            with open(tfvars_path, 'r') as f:
+                tfvars_data = json.load(f)
+           
+            tfvars_data['cloud_init_config'] = cloud_init_path
+           
+            with open(tfvars_path, 'w') as f:
+                json.dump(tfvars_data, f)
+           
+            print(f"Terraform variables file updated with cloud-init path: {tfvars_path}")
+           
+            subprocess.run(
+                [
+                    terraform_path, 'init',
+                    '-backend-config=bucket=terraform-state-cynthus',
+                    f'-backend-config=prefix=terraform/state/{user_id}',
+                    '-input=false',  # Disable interactive prompts
+                    '-no-color'      # Clean output for logs
+                ],
+                cwd=tmp_dir,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+               
+            print(f"Initialized Terraform in directory: {tmp_dir}")
+
             # Select the workspace
             subprocess.run(
                 [terraform_path, 'workspace', 'select', workspace_name],
                 cwd=tmp_dir,
                 capture_output=True,
+                text=True,
                 check=True
             )
+            
+            print(f"Selected workspace: {workspace_name}")
             
             # Run terraform destroy
             destroy_process = subprocess.run(
@@ -48,8 +125,13 @@ def destroy_resources(request):
             )
             
             if destroy_process.returncode != 0:
-                print(f"Terraform destroy failed: {destroy_process.stderr}")
-                return {'error': 'Terraform destroy failed', 'details': destroy_process.stderr}, 500
+                error_message = f"Terraform destroy failed:\nSTDOUT:\n{destroy_process.stdout}\nSTDERR:\n{destroy_process.stderr}"
+                print(error_message)  # This will go to Cloud Functions logs
+                return {
+                   'error': 'Terraform destroy failed',
+                   'stdout': destroy_process.stdout,
+                   'stderr': destroy_process.stderr
+               }, 500
             
             # Clean up the workspace
             subprocess.run(
@@ -101,11 +183,15 @@ def setup_terraform_environment(tmp_dir, user_id):
     main_tf_path = os.path.join(tmp_dir, 'main.tf')
     variables_tf_path = os.path.join(tmp_dir, 'variables.tf')
     
-    with open(main_tf_path, 'w') as f:
-        f.write(MAIN_TF)
-    
-    with open(variables_tf_path, 'w') as f:
-        f.write(VARIABLES_TF)
+    try:
+        with open(main_tf_path, 'w', encoding='utf-8') as f:
+            f.write(MAIN_TF)
+        
+        with open(variables_tf_path, 'w', encoding='utf-8') as f:
+            f.write(VARIABLES_TF)
+    except Exception as e:
+        print(f"Error writing Terraform files: {str(e)}")
+        raise
     
     # Check multiple possible Terraform locations
     terraform_paths = [
@@ -125,67 +211,13 @@ def setup_terraform_environment(tmp_dir, user_id):
     
     print(f"Using Terraform at: {terraform_path}")
     
-    # Initialize Terraform
-    cloud_init_path = os.path.join(tmp_dir, 'cloud-init.yaml')
-    with open(cloud_init_path, 'w') as f:
-        f.write("""#cloud-config
-runcmd:
-  - echo "dummy config"
-""")
-        
-    subprocess.run([
-        terraform_path, 'init',
-        '-backend-config', f'bucket=terraform-state-cynthus',
-        '-backend-config', f'prefix=terraform/state/{user_id}'
-    ], cwd=tmp_dir, check=True)
-    
     return terraform_path
-
-def generate_tfvars(tmp_dir, instance_name, request_json=None):
-    """Generate terraform.tfvars.json file with VM configuration"""
-    # Get configuration from request or use defaults
-    machine_type = request_json.get('machine_type', 'e2-medium')
-    disk_size = request_json.get('disk_size', 100)
-    user_id = request_json.get('user_id', 'unknown')
-
-    tfvars_content = {
-        'instance_name': instance_name,
-        'cloud_init_config': 'cloud-init.yaml',
-        'machine_type': machine_type,
-        'zone': os.environ.get('ZONE'),
-        'project_id': os.environ.get('PROJECT_ID'),
-        'network': 'default',
-        'disk_size': disk_size,
-        'user_id': user_id,
-        'labels': {
-            'role': 'managed',
-            'environment': 'development',
-            'user_id': user_id,
-            'associated_bucket': f"user-bucket-{user_id}",
-            'created_by': 'cloud_function'
-        },
-        'tags': [
-            instance_name,
-            f"user-{user_id}",
-            'http-server',
-            'https-server',
-            'ssh-server'
-        ],
-        'firewall_ports': [
-            '80', '443', '6379', '8001', '6006', '6007',
-            '6000', '7000', '8808', '8000', '8888',
-            '5173', '5174', '9009', '9000'
-        ]
-    }
-    
-    # Write the tfvars file
-    tfvars_path = os.path.join(tmp_dir, 'terraform.tfvars.json')
-    with open(tfvars_path, 'w') as f:
-        json.dump(tfvars_content, f, indent=2)
 
 def delete_user_bucket(user_id):
     """Delete the user's GCS bucket"""
     try:
+        print(f"Deleting bucket for user: {user_id}")
+        
         storage_client = storage.Client()
         bucket_name = f"user-bucket-{user_id}"
         bucket = storage_client.bucket(bucket_name)
@@ -205,6 +237,8 @@ def delete_user_bucket(user_id):
 def delete_output_bucket(user_id):
     """Delete the user's output GCS bucket"""
     try:
+        print(f"Deleting output bucket for user: {user_id}")
+        
         storage_client = storage.Client()
         bucket_name = f"output-user-bucket-{user_id}"
         bucket = storage_client.bucket(bucket_name)
@@ -224,6 +258,8 @@ def delete_output_bucket(user_id):
 def delete_terraform_state(user_id):
     """Delete the user's Terraform state files"""
     try:
+        print(f"Deleting Terraform state for user: {user_id}")
+        
         storage_client = storage.Client()
         bucket_name = f"terraform-state-cynthus"
         bucket = storage_client.bucket(bucket_name)

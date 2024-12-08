@@ -31,3 +31,4 @@ def destroy_resources():
         print(f"Error: {error_data}")
     except Exception as e:
         print(f"Fatal error: {str(e)}")
+

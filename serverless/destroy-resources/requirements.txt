@@ -3,3 +3,4 @@ python-dotenv
 functions-framework
 pyyaml
 google-cloud-functions
+firebase-admin

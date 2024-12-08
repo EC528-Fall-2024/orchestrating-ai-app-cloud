@@ -156,7 +156,6 @@ def src_update():
 
 def _process_src_directory(src_path):
     """Helper function to process source directory"""
-
     src_path = Path(src_path).resolve()
 
     try:
@@ -171,16 +170,14 @@ def _process_src_directory(src_path):
     if not dockerfile_path.exists():
         with open(dockerfile_path, 'w') as f:
             f.write(
-                "FROM python:3.9-slim\n"
-                "WORKDIR /cynthus-src\n"
-                "COPY requirements.txt /cynthus-src/\n"
-                "RUN pip install -r requirements.txt\n"
-                "COPY . /cynthus-src/\n"
+                "FROM python:3.12-slim\n"
+                "WORKDIR /src\n"
+                "COPY . /src\n"
+                "RUN pip install --no-cache-dir -r requirements.txt\n"
                 "CMD [\"python\", \"main.py\"]\n"
             )
         print(f"Generated Dockerfile in {src_path}")
 
-    # Build Docker image
     image_name = 'src_image'
 
     # Check if Docker is available

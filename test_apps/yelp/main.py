@@ -1,7 +1,7 @@
 import torch
-from src.models.classifier import RainClassifier
-from src.data.dataset import WeatherDataset
-from src.training.trainer import RainPredictor
+from src.models.classifier import YelpClassifier
+from src.data.dataset import YelpDataset
+from src.training.trainer import ReviewPredictor
 from src.config.config import ModelConfig, TrainingConfig
 import pandas as pd
 import sys
@@ -40,27 +40,32 @@ def main():
         # Set random seed
         torch.manual_seed(training_config.random_seed)
         
-        # Initialize dataset
-        dataset = WeatherDataset('weather_forecast_data.csv')
-        X_train, X_test, y_train, y_test = dataset.load_and_preprocess()
+        # Initialize dataset with actual paths to CSV files
+        dataset = YelpDataset(
+            train_path='train.csv',  # Update with your actual train file path
+            test_path='test.csv'     # Update with your actual test file path
+        )
+        train_dataloader, test_dataloader = dataset.load_and_preprocess(
+            batch_size=training_config.batch_size
+        )
         
         # Initialize model
-        input_size = X_train.shape[1]
-        model = RainClassifier(
-            input_size=input_size,
+        model = YelpClassifier(
+            vocab_size=dataset.vocab_size,
+            embedding_dim=model_config.embedding_dim,
             hidden_sizes=model_config.hidden_sizes,
+            num_classes=5,  # Yelp has 5 classes
             dropout_rate=model_config.dropout_rate
         )
         
         # Initialize predictor
-        predictor = RainPredictor(model, dataset.scaler)
+        predictor = ReviewPredictor(model)
         
         # Train model
         history = predictor.train(
-            X_train, y_train,
-            X_test, y_test,  # Using test set as validation set for simplicity
+            train_dataloader,
+            test_dataloader,
             num_epochs=training_config.num_epochs,
-            batch_size=training_config.batch_size,
             learning_rate=training_config.learning_rate
         )
         
@@ -68,21 +73,27 @@ def main():
         predictor.plot_training_history()
         
         # Evaluate model
-        accuracy, report = predictor.evaluate(X_test, y_test)
+        accuracy, report = predictor.evaluate(test_dataloader)
         print(f'\nTest Accuracy: {accuracy:.4f}')
         print("\nClassification Report:")
         print(pd.DataFrame(report).transpose())
         
         # Make sample predictions
-        sample_data = X_test.numpy()[:5]
-        predictions, probabilities = predictor.predict(sample_data)
-        actual = y_test[:5].numpy()
+        sample_texts = [
+            "The food was amazing and the service was excellent!",
+            "Decent place but nothing special.",
+            "Terrible experience, would not recommend.",
+        ]
+        predictions, probabilities = predictor.predict(sample_texts, dataset.word_to_idx)
         
         print("\nSample Predictions:")
-        for i, (pred, prob, true) in enumerate(zip(predictions, probabilities, actual)):
-            print(f"Sample {i+1}:")
-            print(f"  Predicted: {'Rain' if pred == 1 else 'No Rain'} (Probability: {prob:.4f})")
-            print(f"  Actual: {'Rain' if true == 1 else 'No Rain'}")
+        for i, (text, pred, probs) in enumerate(zip(sample_texts, predictions, probabilities)):
+            print(f"\nSample {i+1}:")
+            print(f"Text: {text}")
+            print(f"Predicted Rating: {pred + 1} stars")
+            print("Class Probabilities:")
+            for stars, prob in enumerate(probs, 1):
+                print(f"  {stars} stars: {prob:.4f}")
         
     finally:
         # Close and restore stdout
