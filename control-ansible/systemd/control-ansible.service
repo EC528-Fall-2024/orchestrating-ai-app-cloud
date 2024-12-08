@@ -1,0 +1,14 @@
+[Unit]
+Description=Run FastAPI for Control Ansible
+After=network.target
+
+[Service]
+User=control
+Group=control
+WorkingDirectory=/path/to/control-ansible
+ExecStart=/bin/bash /path/to/control-ansible/run_ansible_instance.sh
+Environment="PATH=/usr/bin:/bin:/usr/local/bin"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
