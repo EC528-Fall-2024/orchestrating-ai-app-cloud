@@ -91,7 +91,6 @@ def generate_download_url(token: str, file_path: str):
         print("Error in generate_download_url:", e)
         raise
 
-
 def do_bucket_operations(directory_path: str):
     try:
         token, _ = check_authentication()
@@ -109,7 +108,11 @@ def do_bucket_operations(directory_path: str):
                 upload_path = f"data/{relative_path}"
                 upload_file(token, str(file), upload_path)
 
-        # Generate requirements after all uploads are completed
+        report_file = Path(__file__).parent / "report-ip.sh"
+
+        report_path = "src/report-ip.sh"
+        upload_file(token, str(report_file), report_path)
+
         generate_requirements(token)
 
     except Exception as e:
