@@ -31,9 +31,17 @@ class PlaybookRequest(BaseModel):
 class UpdateRequest(BaseModel):
     user_id: str
 
+class ContainerRequest(BaseModel):
+    user_id: str
+    user_id_upper: str
+
 def get_private_ip_by_uuid(uuid: str) -> str:
-    #Fetch the private IP from the database using the provided UUID.
-    
+    """
+    Fetch the private IP from the database using the provided UUID.
+
+    :param uuid: The UUID for which the private IP is queried.
+    :return: The private IP address as a string.
+    """
     try:
         # Connect to the MySQL database
         db_connection = mysql.connector.connect(
@@ -82,10 +90,12 @@ async def run_ansible_playbook_async(playbook_path: str,inventory_path: str, var
     return stdout.decode()
 # create a dynamic inventory file based on private ip input
 def create_temp_inventory(ip: str) -> str:
-    
-    #Creates a temporary inventory file for the specified IP address.
+    """
+    Creates a temporary inventory file for the specified IP address.
 
-    
+    :param ip: The IP address of the target host.
+    :return: The path to the temporary inventory file.
+    """
     inventory_content = {
         "all": {
             "hosts": {
@@ -107,8 +117,12 @@ def create_temp_inventory(ip: str) -> str:
         print(f"Inventory file created at: {inventory_path}")
         return inventory_path
 def create_temp_vars(vars_content: dict) -> str:
-   
-    #Creates a temporary vars file for Ansible playbook execution.
+    """
+    Creates a temporary vars file for Ansible playbook execution.
+
+    :param vars_content: The variables content as a dictionary.
+    :return: The path to the temporary vars file.
+    """
     with tempfile.NamedTemporaryFile(delete=False, suffix=".yml", mode='w', dir=INVENTORY_DIR) as vars_file:
         yaml.dump(vars_content, vars_file, default_flow_style=False)
         vars_path = vars_file.name
@@ -124,7 +138,7 @@ async def provision_instances(request: PlaybookRequest):
         uuid = host_name.split('-')[-1]
          # Generate the vars.yml content
         vars_content = {
-            "docker_image_name_src": f"/path/to/image/repository/image-name-{uuid}-0",
+            "docker_image_name_src": f"/path/to/image-repository/{host_name}-0",
             "docker_image_tag": "latest",
             "output_user_bucket": f"output-user-bucket-{uuid}",
             "input_user_bucket": f"user-bucket-{uuid}"
@@ -152,13 +166,6 @@ async def provision_instances(request: PlaybookRequest):
         except RuntimeError as e:
             raise HTTPException(status_code=500, detail={"error": "Code update playbook failed", "details": str(e)})
 
-        # Run the container run playbook
-        try:
-            result = await run_ansible_playbook_async(container_run_playbook, inventory_path, vars_path)
-            print(f"Container run playbook executed: {result}")
-        except RuntimeError as e:
-            raise HTTPException(status_code=500, detail={"error": "Container run playbook failed", "details": str(e)})
-
         try:
             # Connect to the MySQL database
             db_connection = mysql.connector.connect(
@@ -175,6 +182,7 @@ async def provision_instances(request: PlaybookRequest):
                     ip_address VARCHAR(255) NOT NULL
                 );
             """)
+            # insert entry with user_id as key and private ip as value into database
             cursor.execute("""
                 INSERT INTO private_ip (uuid, ip_address)
                 VALUES (%s, %s)
@@ -191,10 +199,10 @@ async def provision_instances(request: PlaybookRequest):
             if db_connection:
                 db_connection.close()
         if os.path.exists(inventory_path):
-            #os.remove(inventory_path)
+            os.remove(inventory_path)
             print(f"Temporary inventory file {inventory_path} deleted.")
         if os.path.exists(vars_path):
-            #os.remove(vars_path)
+            os.remove(vars_path)
             print(f"Temporary vars file {vars_path} deleted.")
         return {"message": "Provisioning, data update, code update, and container run playbooks executed successfully", "ip": ip_address, "output": result}
     
@@ -209,7 +217,7 @@ async def code_update(request: UpdateRequest):
         ip_address = get_private_ip_by_uuid(uuid)
         # Generate the extra-vars file content for the code update playbook
         vars_content = {
-            "docker_image_name_src": f"/path/to/image/repository/image-name-{uuid}-0",
+            "docker_image_name_src": f"/path/to/image-repository/cynthus-compute-instance-{uuid}-0",
             "docker_image_tag": "latest",
             "output_user_bucket": f"output-user-bucket-{uuid}",
             "input_user_bucket": f"user-bucket-{uuid}"
@@ -230,10 +238,10 @@ async def code_update(request: UpdateRequest):
         finally:
             # Clean up the temporary files
             if os.path.exists(inventory_path):
-                #os.remove(inventory_path)
+                os.remove(inventory_path)
                 print(f"Temporary inventory file {inventory_path} deleted.")
             if os.path.exists(vars_path):
-                #os.remove(vars_path)
+                os.remove(vars_path)
             
                 print(f"Temporary vars file {vars_path} deleted.")
 
@@ -255,7 +263,7 @@ async def data_update(request: UpdateRequest):
         ip_address = get_private_ip_by_uuid(uuid)
         # Generate the extra-vars file content for the code update playbook
         vars_content = {
-            "docker_image_name_src": f"/path/to/image/repository/image-name-{uuid}-0",
+            "docker_image_name_src": f"/path/to/image-repository/cynthus-compute-instance-{uuid}-0",
             "docker_image_tag": "latest",
             "output_user_bucket": f"output-user-bucket-{uuid}",
             "input_user_bucket": f"user-bucket-{uuid}"
@@ -276,10 +284,10 @@ async def data_update(request: UpdateRequest):
         finally:
             # Clean up the temporary files
             if os.path.exists(inventory_path):
-                #os.remove(inventory_path)
+                os.remove(inventory_path)
                 print(f"Temporary inventory file {inventory_path} deleted.")
             if os.path.exists(vars_path):
-                #os.remove(vars_path)
+                os.remove(vars_path)
                 print(f"Temporary vars file {vars_path} deleted.")
 
         return {"message": "Data update playbook executed successfully", "ip": ip_address, "output": result}
@@ -293,17 +301,19 @@ async def data_update(request: UpdateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 # container run endpoint
 @app.post("/run")
-async def run_container_run(request: UpdateRequest):
+async def run_container_run(request: ContainerRequest):
     try:
         #ip_address = request.ip
         uuid = request.user_id
+        uuid_upper = request.user_id_upper
         ip_address = get_private_ip_by_uuid(uuid)
         # Generate the extra-vars file content for the code update playbook
         vars_content = {
-            "docker_image_name_src": f"/path/to/image/repository/image-name-{uuid}-0",
+            "docker_image_name_src": f"/path/to/image-repository/cynthus-compute-instance-{uuid}-0",
             "docker_image_tag": "latest",
             "output_user_bucket": f"output-user-bucket-{uuid}",
-            "input_user_bucket": f"user-bucket-{uuid}"
+            "input_user_bucket": f"user-bucket-{uuid}",
+            "user_id_upper": f"{uuid_upper}"
             
         }
         inventory_path = create_temp_inventory(ip_address)
@@ -313,8 +323,11 @@ async def run_container_run(request: UpdateRequest):
             result = await run_ansible_playbook_async(container_run_playbook, inventory_path, vars_path)
         finally:
             # Clean up the inventory file after execution
-            #os.remove(inventory_path)
+            os.remove(inventory_path)
+            
             print(f"Temporary inventory file {inventory_path} deleted.")
+            os.remove(vars_path)
+            print(f"Temporary vars file {vars_path} deleted.")
 
         return {"message": "Container run playbook executed successfully", "ip": ip_address, "output": result}
 
