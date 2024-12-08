@@ -16,7 +16,7 @@ def destroy_resources():
 
         print('\nSending destroy request...')
         
-        response = requests.delete(FUNCTION_URL, headers=headers)
+        response = requests.delete(FUNCTION_URL, headers=headers, json={})
         response.raise_for_status()
         
         print('Resources destroyed:', response.json())
