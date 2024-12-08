@@ -80,8 +80,11 @@ The Cynthus CLI has the following commands:
 NOTE: Docker Desktop must be open in order to run the commands **prepare** and **update-src**
 
 ** **
-## Other requirements
+## Other requirements/restrictions
 
+- Running any Cynthus command for the first time will automatically prompt the user to either log in to their account or create an account.
+- Upon logging in or signing up, an authentication token file (**auth_token.json**) will be created for the user in the directory where the command triggering the log in/sign up was called. This token provides authentication for 1 hour. Any commands run when the token expires will trigger the user to log back in.
+- Cynthus commands need to be run from the same directory as the authentication token file, othewise the log in/sign up functionality will be triggered again.
 - Due to how construction of the Docker image is handled by the CLI, the file within the source directory containing the code that the user wants to run upon resource provisioning on the GCP should be named **main.py**.
 
 ** **
