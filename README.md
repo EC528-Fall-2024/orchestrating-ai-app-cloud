@@ -62,7 +62,10 @@ The Cynthus CLI has the following commands:
 - **prepare --src_path [src_path] --data_path [data_path]**: Given the directories containing the source code and data, this command will push the contents of the directories to the Google Cloud Platform in order to prepare the project. If no **data_path** is provided, the user will be prompted to provide a link to external data (currently only works with Kaggle and HuggingFace).
 - **update-data**: Given new data, this command will push the new data to the users data bucket. The user will be prompted as to whether this new data is local or external.
 - **update-src**: Given a new source code path, this command will push the new source code to the Artifact Registry.
-- **output-pull**: Once the project has finished running, this command can be run to pull the output from the users output bucket locally, in the location this command is run.
+- **destroy**: Deletes the current resources created for this account on the GCP. Can be used once a project is finished and the VM no longer needs to run, or if a full reset is needed.
+- **pull**: Once the project has finished running, this command can be run to pull the output from the users output bucket locally, in the location this command is run.
+
+NOTE: Docker Desktop must be open in order to run the commands **prepare** and **update-src**
 
 ## 1.   Vision and Goals Of The Project:
 
