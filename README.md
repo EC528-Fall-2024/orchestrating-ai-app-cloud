@@ -80,6 +80,11 @@ The Cynthus CLI has the following commands:
 NOTE: Docker Desktop must be open in order to run the commands **prepare** and **update-src**
 
 ** **
+## Other requirements
+
+- Due to how construction of the Docker image, the file containing the source code that the user wants to run should be named **main.py**.
+
+** **
 
 ## 1.   Vision and Goals Of The Project:
 
