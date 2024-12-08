@@ -58,7 +58,7 @@ Once this installation is complete, commands are run using the follwing format:
 cynthus [command]
 ```
 
-More detailed instructions of the possible CLI commands can be found in the section below. This information can also seen by calling ```cynthus --help```, ```cynthus -h```, or ```cynthus```.
+More detailed instructions of the possible CLI commands can be found in the section below. Information regarding these commands can also be found by running ```cynthus --help```, ```cynthus -h```, or ```cynthus```.
 
 ** **
 
