@@ -1,0 +1,2 @@
+google-api-python-client==2.96.0
+functions-framework==3.4.0
