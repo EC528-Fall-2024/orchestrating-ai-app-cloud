@@ -167,10 +167,21 @@ def _process_src_directory(src_path):
     if not dockerfile_path.exists():
         with open(dockerfile_path, 'w') as f:
             f.write(
-                "FROM python:3.12-slim\n"
-                "WORKDIR /src\n"
-                "COPY . /src\n"
+                "FROM python:3.12-slim-bullseye as builder\n"
+                "ENV PYTHONDONTWRITEBYTECODE=1\n"
+                "ENV PYTHONUNBUFFERED=1\n"
+                "RUN apt-get update && apt-get install -y --no-install-recommends \\\n"
+                "    build-essential \\\n"
+                "    && rm -rf /var/lib/apt/lists/*\n"
+                "RUN python -m venv /opt/venv\n"
+                "ENV PATH=\"/opt/venv/bin:$PATH\"\n"
+                "COPY requirements.txt .\n"
                 "RUN pip install --no-cache-dir -r requirements.txt\n"
+                "FROM python:3.12-slim-bullseye\n"
+                "COPY --from=builder /opt/venv /opt/venv\n"
+                "ENV PATH=\"/opt/venv/bin:$PATH\"\n"
+                "WORKDIR /cynthus-src\n"
+                "COPY . /cynthus-src\n"
                 "CMD [\"python\", \"main.py\"]\n"
             )
         print(f"Generated Dockerfile in {src_path}")
