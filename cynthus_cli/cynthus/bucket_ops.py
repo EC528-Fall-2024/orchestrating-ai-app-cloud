@@ -1,6 +1,7 @@
 import requests
 from .firebase_auth import *
 from pathlib import Path
+import json
 
 FUNCTION_URL = 'https://us-central1-cynthusgcp-438617.cloudfunctions.net/bucket_operations'
 
@@ -109,9 +110,23 @@ def do_bucket_operations(directory_path: str):
                 upload_file(token, str(file), upload_path)
 
         report_file = Path(__file__).parent / "report-ip.sh"
-
         report_path = "src/report-ip.sh"
         upload_file(token, str(report_file), report_path)
+
+        machine_type = input("Enter the machine type (e.g., n1-standard-1): ").strip()
+        disk_size = input("Enter the disk size (e.g., 50 for 50GB): ").strip()
+
+        config = {
+            "machine_type": machine_type,
+            "disk_size": disk_size
+        }
+        config_file = Path(__file__).parent / "config.json"
+        with open(config_file, "w") as file:
+            json.dump(config, file, indent=4)
+
+        config_upload_path = "config.json"
+        upload_file(token, str(config_file), config_upload_path)
+        config_file.unlink()
 
         generate_requirements(token)
 
