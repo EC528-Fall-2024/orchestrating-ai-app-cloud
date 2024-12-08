@@ -52,6 +52,16 @@ run the following command:
 pip install -e .
 ```
 
+Once this installation is complete, commands are run using the follwing format: 
+
+```
+cynthus [command]
+```
+
+More detailed instructions of the possible CLI commands can be found in the section below. This information can also seen by calling ```cynthus --help```, ```cynthus -h```, or ```cynthus```.
+
+** **
+
 ## CLI Command Explanations:
 
 The Cynthus CLI has the following commands:
@@ -69,6 +79,8 @@ The Cynthus CLI has the following commands:
 
 NOTE: Docker Desktop must be open in order to run the commands **prepare** and **update-src**
 
+** **
+
 ## 1.   Vision and Goals Of The Project:
 
 Cynthus aims to simplify the deployment of AI applications on cloud platforms. While initially designed for Intel Developer Cloud (IDC), the project currently operates on Google Cloud Platform (GCP) due to accessibility considerations. The platform addresses the challenges developers face when deploying AI workloads by providing automated solutions for resource management, dependency handling, and deployment orchestration.
@@ -81,6 +93,7 @@ Key goals of the project include:
 - Managing cloud infrastructure through automated scripts and serverless functions
 - Supporting scalable and maintainable AI workload deployments
 
+** **
 
 ## 2. Users/Personas Of The Project:
 
