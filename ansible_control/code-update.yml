@@ -1,0 +1,29 @@
+- name: run container from GCP Artifact Registry
+  hosts: target_instance
+  become: true
+  vars_files:
+    - /path/to/vars.yml
+  tasks:
+    - name: create and write service account file to path
+      copy:
+        src: "{{ storage_admin_src }}"
+        dest: "{{ storage_admin_dest }}"
+        mode: '0644'
+        force: false
+    - name: create and write service account file to path
+      copy:
+        src: "{{ artifact_src }}"
+        dest: "{{ artifact_dest }}"
+        mode: '0644'
+        force: false
+    - name: authenticate with google cloud
+      shell: "cat {{ artifact_dest }} | docker login -u _json_key --password-stdin https://{{ gcp_repo_location }}-docker.pkg.dev"
+      args:
+        executable: /bin/bash
+    - name: Pull the Docker image
+      docker_image:
+        name: "{{ docker_image_name_src }}"
+        tag: "{{ docker_image_tag }}"
+        source: pull
+        state: present
+        force_source: yes
