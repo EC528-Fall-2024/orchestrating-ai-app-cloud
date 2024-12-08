@@ -86,7 +86,7 @@ NOTE: Docker Desktop must be open in order to run the commands **prepare** and *
 - Upon logging in or signing up, an authentication token file (**auth_token.json**) will be created for the user in the directory where the command triggering the log in/sign up was called. This token provides authentication for 1 hour. Any commands run when the token expires will trigger the user to log back in.
 - Cynthus commands need to be run from the same directory as the authentication token file, othewise the log in/sign up functionality will be triggered again.
 - Due to how construction of the Docker image is handled by the CLI, the file within the source directory containing the code that the user wants to run upon resource provisioning on the GCP should be named **main.py**.
-- When the data and source code are uploaded to the VM instance, the data directory and the **main.py** file will be placed in the same directory (cynthus-src). Therefore, **main,py** should be constructed such that it looks for data in a data directory located within the same directory as itself.
+- When the data and source code are uploaded to the VM instance, the data directory and the **main.py** file will be placed in the same directory. Therefore, **main,py** should be constructed such that it looks for data in a data directory located within the same directory as itself.
 - After ```cynthus prepare``` has been run, serverless functions are run to spin up the VM instance and mount everything. To ensure that there are no issues with running the VM, wait 5-10 minutes before using ```cynthus run```.
 
 ** **
