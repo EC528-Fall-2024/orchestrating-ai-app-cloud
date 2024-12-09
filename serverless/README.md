@@ -1,103 +1,128 @@
-# VM Creation Cloud Function
+# Deployment Guide
 
-## Overview
-This is a serverless application that automatically creates and configures Virtual Machines (VMs) on Google Cloud Platform (GCP). Think of it as a robot that sets up computers in the cloud for you with just one click!
+To deploy each cloud function, navigate to the respective directory containing the `cloudbuild.yaml` file and run the `gcloud builds submit` command. This command will trigger the build and deployment process as specified in the YAML configuration.
 
-## What Does It Do?
-1. Creates a new VM instance on Google Cloud
-2. Sets up the VM with:
-   - Python and essential development tools
-   - Custom security settings
-   - Required Python packages
-   - SSH access for secure login
-   - Firewall rules for network access
+## Prerequisites
 
-## How It Works
-The application uses several key components:
+- Ensure you have the Google Cloud SDK installed and configured on your machine.
+- Authenticate with your Google Cloud account using `gcloud auth login`.
+- Set the appropriate project using `gcloud config set project YOUR_PROJECT_ID`.
 
-### 1. Cloud Function (Main Entry Point)
-The main function `create_vm` handles the entire process. It:
-- Receives a request with VM specifications
-- Generates necessary configuration files
-- Uses Terraform to create the VM
-- Returns the VM's IP address when done
+## Deployment Commands
 
-### 2. Cloud Init Generator
-Prepares the VM's initial setup script that:
-- Creates a user named "cynthus"
-- Installs necessary packages
-- Sets up Python virtual environment
-- Configures SSH access
+1. **Deploy `create-vm` Function**
 
-### 3. Secret Manager
-Safely manages sensitive information like:
-- SSH keys
-- Project credentials
-- GCP configuration
+   This function is responsible for creating a new VM instance on Google Cloud with specified configurations.
 
-## Requirements
-- Google Cloud Platform account
-- The following Python packages:
-- python
-    - google-cloud-storage
-    - python-dotenv
-    - functions-framework
-    - pyyaml
-    - google-cloud-functions
-  
+   ```bash
+   cd path/to/create-vm
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
 
-  
-## How to Use
+2. **Deploy `create-vm-test` Function**
 
-### 1. Deploy the Function
-Deploy this code as a Cloud Function on Google Cloud Platform.
+   This function serves as a test version of the `create-vm` function, allowing for testing and validation of VM creation processes.
 
-### 2. Make a Request
-Send a POST request to the function URL with this JSON structure:
+   ```bash
+   cd path/to/create-vm-test
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
 
-Example request:
-```json
-{
-  "machine_type": "e2-medium",
-  "disk_size": 100
-}
-```
+3. **Deploy `destroy-resources` Function**
 
-### 3. Get Results
-The function will return:
-- Success message with VM name
-- IP address of the new VM
-- Terraform execution logs
+   This function handles the destruction of cloud resources, ensuring that all associated resources are properly cleaned up.
 
-## Security Features
-- Automatic firewall configuration
-- SSH key-based authentication (no passwords)
-- Limited sudo access
-- Secure package installation
+   ```bash
+   cd path/to/destroy-resources
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
 
-## Common Use Cases
-- Setting up development environments
-- Creating testing servers
-- Deploying application servers
-- Setting up data science workstations
+4. **Deploy `bucket-operations` Function**
 
-## Error Handling
-The application includes comprehensive error handling for:
-- Missing configuration
-- Failed VM creation
-- Network issues
-- Invalid parameters
+   This function manages operations related to Google Cloud Storage buckets, such as creation and file uploads.
 
-## Tips for New Users
-1. Start with small machine types (e2-medium is good for testing)
-2. Keep track of your VMs to avoid unnecessary costs
-3. Always use the provided firewall rules
-4. Make sure your SSH key is properly configured
+   ```bash
+   cd path/to/bucket-operations
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
 
-## Need Help?
-The code includes detailed comments and error messages to help you troubleshoot. Key files to look at:
-- `main.py` - Main function logic
-- `cloud_init_gen.py` - VM configuration
-- `terraform_configs.py` - Infrastructure setup
+5. **Deploy `bucket-listener-vm` Function**
 
-Remember: Always review the costs associated with creating VMs on Google Cloud Platform!
+   This function listens for bucket creation events and triggers VM creation based on the bucket's configuration.
+
+   ```bash
+   cd path/to/bucket-listener-vm
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
+
+6. **Deploy `run-container` Function**
+
+   This function is responsible for running containers on a specified infrastructure, often used for executing workloads.
+
+   ```bash
+   cd path/to/run-container
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
+
+7. **Deploy `data-update` Function**
+
+   This function updates data within the cloud infrastructure, ensuring that datasets and configurations are current.
+
+   ```bash
+   cd path/to/data-update
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
+
+8. **Deploy `code-update` Function**
+
+   This function updates code repositories or configurations, facilitating continuous integration and deployment processes.
+
+   ```bash
+   cd path/to/code-update
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
+
+9. **Deploy `email-user` Function**
+
+   This function sends email notifications to users, typically used to inform them of completed tasks or updates.
+
+   ```bash
+   cd path/to/email-user
+   gcloud builds submit --config=cloudbuild.yaml
+   ```
+
+10. **Deploy `output-ops` Function**
+
+    This function manages operations related to output data, such as generating and storing results from computations.
+
+    ```bash
+    cd path/to/output-ops
+    gcloud builds submit --config=cloudbuild.yaml
+    ```
+
+11. **Deploy `docker-operations` Function**
+
+    This function handles Docker-related operations, such as building and pushing Docker images to a registry.
+
+    ```bash
+    cd path/to/docker-operations
+    gcloud builds submit --config=cloudbuild.yaml
+    ```
+
+12. **Deploy `dataset-downloader` Function**
+
+    This function downloads datasets from specified sources and uploads them to Google Cloud Storage for further processing.
+
+    ```bash
+    cd path/to/dataset-downloader
+    gcloud builds submit --config=cloudbuild.yaml
+    ```
+
+13. **Deploy `bucket-logger` Function**
+
+    This function logs events related to bucket operations, providing insights and audit trails for storage activities.
+
+    ```bash
+    cd path/to/bucket-logger
+    gcloud builds submit --config=cloudbuild.yaml
+    ```
