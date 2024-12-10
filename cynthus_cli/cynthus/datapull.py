@@ -134,7 +134,6 @@ def internal_data():
             return
         try:
             do_bucket_operations(str(data_path))
-            update_data()
 
         except Exception as e:
             print(f"Error uploading data directory: {e}")

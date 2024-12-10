@@ -1,6 +1,5 @@
-FROM python:3.9-slim
-WORKDIR /cynthus-src
-COPY requirements.txt /cynthus-src/
-RUN pip install -r requirements.txt
-COPY . /cynthus-src/
+FROM python:3.12-slim
+WORKDIR /src
+COPY . /src
+RUN pip install --no-cache-dir -r requirements.txt
 CMD ["python", "main.py"]

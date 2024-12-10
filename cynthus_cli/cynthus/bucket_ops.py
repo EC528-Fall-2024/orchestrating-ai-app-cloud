@@ -102,15 +102,16 @@ def do_bucket_operations(directory_path: str):
         directory = Path(directory_path)
         if not directory.is_dir():
             raise ValueError(f"{directory_path} is not a valid directory")
-
+        
         for file in directory.rglob('*'):
             if file.is_file():
                 relative_path = file.relative_to(directory)
                 upload_path = f"data/{relative_path}"
                 upload_file(token, str(file), upload_path)
-
-        # Generate requirements after all uploads are completed
+        report_file = Path(__file__).parent / "report-ip.sh"
+        report_path = "src/report-ip.sh"
+        upload_file(token, str(report_file), report_path)
         generate_requirements(token)
-
     except Exception as e:
         print("Error in do_bucket_operations:", e)
+
