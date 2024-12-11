@@ -9,8 +9,7 @@ from .destroy_ops import *
 from .run_ops import *
 
 def cli_entry_point():
-    # From Firebase.py
-    check_authentication()
+    
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
@@ -22,9 +21,6 @@ def cli_entry_point():
     # Log in to established Cynthus account
     parser_login = subparsers.add_parser(
         'login', help='Log in to Cynthus account')
-
-    # Get information regarding VM package (NOT FULLY IMPLEMENTED SO FAR)
-    parser_info = subparsers.add_parser('info', help='Get VM package info')
 
     # Initialize a project directory Command
     parser_init = subparsers.add_parser(
@@ -74,10 +70,13 @@ def cli_entry_point():
         password = input('Password: ')
         login_user(email, password)
     elif args.command == 'init':
+        check_authentication()
         init_project(args.project_name)
     elif args.command == 'prepare':
+        check_authentication()
         prepare_project(args.src_path, args.data_path)
     elif args.command == 'update':
+        check_authentication()
         if args.src:
             print("Updating source...")
             update_src()
@@ -89,14 +88,19 @@ def cli_entry_point():
             update_src()
             update_data()
     elif args.command == 'destroy':
+        check_authentication()
         destroy_resources()
     elif args.command == 'update-data':
+        check_authentication()
         load_data()
     elif args.command == 'update-src':
+        check_authentication()
         src_update()
     elif args.command == 'run':
+        check_authentication()
         run_container()
     elif args.command == 'pull':
+        check_authentication()
         pull_output()
     else:
         parser.print_help()
