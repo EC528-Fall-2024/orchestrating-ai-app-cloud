@@ -34,9 +34,23 @@
          cmd: "sudo docker logs user_container 2>> /path/to/logs.txt"
       when: container_exit_code.rc != 0
 
-    - name: copy content to bucket
+    - name: Copy all files from container's /cynthus-src/ to host
+      ansible.builtin.shell:
+        cmd: |
+          sudo docker cp user_container:/cynthus-src /home/cynthus/workspace/outputs
+    - name: Move logs.txt to outputs folder
+      ansible.builtin.shell:
+        cmd: "sudo mv /home/cynthus/workspace/logs.txt /home/cynthus/workspace/outputs/logs.txt"
+    - name: Create a tar archive of the outputs folder
+      community.general.archive:
+        dest: /home/cynthus/workspace/outputs.tar.gz
+        path: /home/cynthus/workspace/outputs
+        format: gz
+        remove: false
+        force_archive: true
+    - name: copy zip file to bucket
       shell: |
-          sudo gsutil cp -r /path/to/logs.txt gs://{{ output_user_bucket }}/workspace/
+          sudo gsutil cp -r /home/cynthus/workspace/outputs.tar.gz gs://{{ output_user_bucket }}/workspace/
 
     - name: send email notifications using cloud function
       shell: |
