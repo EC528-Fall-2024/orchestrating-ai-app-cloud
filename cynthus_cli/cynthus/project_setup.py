@@ -97,6 +97,7 @@ def prepare_project(src_path, data_path):
             print(f"Error uploading data directory: {e}")
             return
     else:
+        do_bucket_operations()
         print("No data directory provided. Prompting user for external data.")
         external_data()
 

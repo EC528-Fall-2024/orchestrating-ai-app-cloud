@@ -92,22 +92,23 @@ def generate_download_url(token: str, file_path: str):
         print("Error in generate_download_url:", e)
         raise
 
-def do_bucket_operations(directory_path: str):
+def do_bucket_operations(directory_path: str | None = None):
     try:
         token, _ = check_authentication()
 
         create_bucket(token, "create")
         create_bucket(token, "create_output")
 
-        directory = Path(directory_path)
-        if not directory.is_dir():
-            raise ValueError(f"{directory_path} is not a valid directory")
+        if directory_path:
+            directory = Path(directory_path)
+            if not directory.is_dir():
+                raise ValueError(f"{directory_path} is not a valid directory")
 
-        for file in directory.rglob('*'):
-            if file.is_file():
-                relative_path = file.relative_to(directory)
-                upload_path = f"data/{relative_path}"
-                upload_file(token, str(file), upload_path)
+            for file in directory.rglob('*'):
+                if file.is_file():
+                    relative_path = file.relative_to(directory)
+                    upload_path = f"data/{relative_path}"
+                    upload_file(token, str(file), upload_path)
 
         report_file = Path(__file__).parent / "report-ip.sh"
         report_path = "src/report-ip.sh"
